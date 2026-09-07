@@ -106,7 +106,7 @@ const G=null, list=document.getElementById("bookingList"),search=document.getEle
 today.setHours(0,0,0,0);let bookings=[],current=null,selDate=null,selTime=null,view=new Date(today.getFullYear(),today.getMonth(),1);
 const k=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`,dt=s=>{let d=new Date(s+"T00:00:00");return`${dn[d.getDay()]}, ${d.getDate()} ${mn[d.getMonth()]} ${d.getFullYear()}`},esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 async function load(){try{bookings=await api("getBookings")||[];render()}catch(e){toast(e.message||"Gagal memuat booking")}}
-function render(){let q=search.value.toLowerCase(),sf=status.value,bf=barber.value,r=bookings.filter(b=>(!q||`${b.name} ${b.wa} ${b.service} ${b.id}`.toLowerCase().includes(q))&&(sf==="all"||b.status.toLowerCase()===sf)&&(bf==="all"||b.barber===bf));list.innerHTML=r.length?r.map(b=>`<article class="booking"><div class="datebox"><strong>${b.time}</strong><small>${dt(b.date)}</small></div><div class="client"><strong>${esc(b.name)}</strong><small>${esc(b.service)} · ${esc(b.wa)}</small></div><div class="barber"><strong>${esc(b.barber)}</strong><small>${esc(b.note)}</small><span class="status ${b.status.toLowerCase()}">${b.status}</span></div><div class="row-actions"><button class="iconbtn" onclick="openRes('${b.id}')">↻</button><button class="iconbtn" onclick="done('${b.id}')">✓</button><button class="iconbtn cancel-btn" onclick="cancel('${b.id}')">${b.status==="Cancelled"?"↺":"×"}</button></div></article>`).join(""):`<div class="empty">Tidak ada booking.</div>`;let a=bookings.filter(b=>!["Cancelled","Completed"].includes(b.status));document.getElementById("bookingCount").textContent=r.length+" DATA";document.getElementById("statToday").textContent=a.filter(b=>b.date===k(today)).length;document.getElementById("statUpcoming").textContent=a.filter(b=>b.date>k(today)).length;document.getElementById("statRevenue").textContent="Rp"+a.reduce((s,b)=>s+Number(b.price||0),0).toLocaleString("id-ID");document.getElementById("statRescheduled").textContent=bookings.filter(b=>b.status==="Rescheduled").length;document.getElementById("todayLabel").textContent=today.getDate()+" "+mn[today.getMonth()]}
+function render(){let q=search.value.toLowerCase(),sf=status.value,bf=barber.value,r=bookings.filter(b=>(!q||`${b.name} ${b.wa} ${b.service} ${b.id}`.toLowerCase().includes(q))&&(sf==="all"||b.status.toLowerCase()===sf)&&(bf==="all"||b.barber===bf));list.innerHTML=r.length?r.map(b=>`<article class="booking"><div class="datebox"><strong>${b.time}</strong><small>${dt(b.date)}</small></div><div class="client"><strong>${esc(b.name)}</strong><small>${esc(b.service)} · ${esc(b.wa)}</small></div><div class="barber"><strong>${esc(b.barber)}</strong><small>${esc(b.note)}</small><span class="status ${b.status.toLowerCase()}">${b.status}</span></div><div class="row-actions"><button class="iconbtn" title="Ingatkan customer via WhatsApp" onclick="remindCustomer('${b.id}')">🔔</button><button class="iconbtn" title="Reschedule" onclick="openRes('${b.id}')">↻</button><button class="iconbtn" title="Selesaikan booking" onclick="done('${b.id}')">✓</button><button class="iconbtn cancel-btn" title="Batalkan / aktifkan kembali" onclick="cancel('${b.id}')">${b.status==="Cancelled"?"↺":"×"}</button></div></article>`).join(""):`<div class="empty">Tidak ada booking.</div>`;let a=bookings.filter(b=>!["Cancelled","Completed"].includes(b.status));document.getElementById("bookingCount").textContent=r.length+" DATA";document.getElementById("statToday").textContent=a.filter(b=>b.date===k(today)).length;document.getElementById("statUpcoming").textContent=a.filter(b=>b.date>k(today)).length;document.getElementById("statRevenue").textContent="Rp"+a.reduce((s,b)=>s+Number(b.price||0),0).toLocaleString("id-ID");document.getElementById("statRescheduled").textContent=bookings.filter(b=>b.status==="Rescheduled").length;document.getElementById("todayLabel").textContent=today.getDate()+" "+mn[today.getMonth()]}
 function openRes(id){current=bookings.find(b=>b.id===id);if(!current)return;selDate=current.date;selTime=current.time;let d=new Date(selDate+"T00:00:00");view=new Date(d.getFullYear(),d.getMonth(),1);document.getElementById("resModal").classList.add("show");cal();times();sum()}
 function sum(){document.getElementById("resSummary").innerHTML=`<strong>${esc(current.name)} · ${esc(current.service)}</strong><small>${dt(current.date)} · ${current.time} · ${esc(current.barber)}</small>`}
 function cal(){let f=new Date(view.getFullYear(),view.getMonth(),1),l=new Date(view.getFullYear(),view.getMonth()+1,0),c=[];for(let i=0;i<f.getDay();i++)c.push('<button class="date-cell muted" disabled></button>');for(let i=1;i<=l.getDate();i++){let d=new Date(view.getFullYear(),view.getMonth(),i),x=k(d);c.push(`<button class="date-cell ${x===selDate?"selected":""}" onclick="pickDate('${x}')"><strong>${i}</strong><small>${dn[d.getDay()]}</small></button>`)}document.getElementById("calTitle").textContent=mn[view.getMonth()]+" "+view.getFullYear();document.getElementById("dateGrid").innerHTML=dn.map(x=>`<div class="dayhead">${x}</div>`).join("")+c.join("")}
@@ -191,6 +191,42 @@ async function cancel(id){
 }
 async function done(id){
   if(confirm("Tandai selesai & sudah bayar?"))try{await api("completeBookingServer",{id});toast("Booking selesai");await load()}catch(e){toast(e.message||"Gagal")}
+}
+
+function normalizeWA(phone){
+  let n=String(phone||"").replace(/[^0-9]/g,"");
+  if(n.startsWith("0")) n="62"+n.slice(1);
+  else if(n.startsWith("8")) n="62"+n;
+  return n;
+}
+function formatReminderDate(date){
+  try{return dt(date)}catch(e){return date||"-"}
+}
+function remindCustomer(id){
+  const b=bookings.find(x=>x.id===id);
+  if(!b)return toast("Data booking tidak ditemukan.");
+  if(b.status==="Cancelled")return toast("Booking sudah dibatalkan.");
+  if(b.status==="Completed")return toast("Booking sudah selesai.");
+  const wa=normalizeWA(b.wa);
+  if(!wa || wa.length<10)return toast("Nomor WhatsApp customer tidak valid.");
+  const message=[
+    "Halo "+(b.name||"Kak")+", 👋",
+    "",
+    "Ini pengingat dari RESO Haircut untuk booking kamu.",
+    "",
+    "📅 Tanggal: "+formatReminderDate(b.date),
+    "⏰ Jam: "+(b.time||"-"),
+    "💈 Layanan: "+(b.service||"-"),
+    "✂️ Capster: "+(b.barber||"-"),
+    "🧾 Booking ID: "+(b.id||"-"),
+    "",
+    "Booking kamu akan dimulai sekitar 1 jam lagi. Mohon datang tepat waktu ya 🙏",
+    "",
+    "Terima kasih sudah booking di RESO Haircut!"
+  ].join("\n");
+  const url="https://wa.me/"+wa+"?text="+encodeURIComponent(message);
+  window.open(url,"_blank","noopener,noreferrer");
+  toast("WhatsApp reminder dibuka.");
 }
 search.oninput=load;status.onchange=load;barber.onchange=load;document.getElementById("quickReschedule").onclick=()=>{let b=bookings.find(x=>!["Cancelled","Completed"].includes(x.status));if(b)openRes(b.id)};document.getElementById("quickAll").onclick=()=>{search.value="";status.value="all";barber.value="all";load()};document.getElementById("newBooking").onclick=()=>location.href="?page=booking";document.getElementById("resetDemo").style.display="none";
 function toast(x){let t=document.getElementById("toast");t.textContent=x;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2200)}load();
