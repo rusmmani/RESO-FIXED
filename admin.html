@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RESO Haircut — Dashboard</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
+:root{--bg:#f2f0eb;--surface:#e9e6df;--dark:#151515;--text:#171717;--muted:#77746d;--border:rgba(20,20,20,.14);--white:#fff;--green:#315c43;--red:#7b3d38;--font:"Manrope",sans-serif;--mono:"DM Mono",monospace}
+*{box-sizing:border-box;margin:0;padding:0}body{background:var(--bg);color:var(--text);font-family:var(--font);min-width:320px}button,input,select{font:inherit}button{cursor:pointer}.wrap{width:min(1400px,calc(100% - 40px));margin:auto}
+.topbar{height:78px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:20px}
+.brand{display:flex;align-items:center;gap:12px}.logo{width:42px;height:42px;background:var(--dark);color:#fff;display:grid;place-items:center;font-weight:800}.brand strong{display:block;font-size:15px}.brand small{font:8px var(--mono);color:var(--muted)}
+.top-actions{display:flex;gap:8px;align-items:center}.btn{border:1px solid var(--border);background:transparent;padding:11px 15px;font-size:10px;font-weight:700}.btn.dark{background:var(--dark);color:#fff;border-color:var(--dark)}.btn:hover{transform:translateY(-1px)}
+.page{padding:42px 0 70px}.eyebrow{font:9px var(--mono);text-transform:uppercase;color:var(--muted);letter-spacing:.08em}.head{display:flex;justify-content:space-between;align-items:end;gap:20px;margin-bottom:30px}.head h1{font-size:clamp(42px,6vw,76px);line-height:.9;letter-spacing:-.08em;margin-top:12px}.head p{max-width:380px;font-size:12px;line-height:1.7;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--border);margin-bottom:28px}.stat{padding:20px;border-right:1px solid var(--border)}.stat:last-child{border-right:0}.stat strong{display:block;font-size:30px;letter-spacing:-.06em}.stat span{font:8px var(--mono);text-transform:uppercase;color:var(--muted);display:block;margin-top:6px}
+.grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(300px,.8fr);gap:25px}.panel{border:1px solid var(--border);background:rgba(255,255,255,.16)}.panel-head{padding:20px 22px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:12px}.panel-head h2{font-size:18px;letter-spacing:-.04em}.panel-head small{font:8px var(--mono);color:var(--muted)}
+.filters{display:flex;gap:8px;padding:14px 22px;border-bottom:1px solid var(--border);flex-wrap:wrap}.filters input,.filters select{border:1px solid var(--border);background:transparent;padding:10px 11px;font-size:10px;outline:none}.filters input{flex:1;min-width:180px}
+.booking-list{display:grid}.booking{display:grid;grid-template-columns:110px 1fr 150px 90px;gap:15px;align-items:center;padding:18px 22px;border-bottom:1px solid var(--border)}.booking:last-child{border-bottom:0}.booking:hover{background:#e8e5de}.booking.is-completed{opacity:.58}.booking.is-completed .datebox strong{text-decoration:line-through}.donebtn{font-weight:800}.datebox strong{display:block;font-size:18px;letter-spacing:-.04em}.datebox small{font:8px var(--mono);color:var(--muted)}.client strong{font-size:13px}.client small{display:block;font:8px var(--mono);color:var(--muted);margin-top:5px}.barber strong{font-size:11px}.barber small{display:block;font:8px var(--mono);color:var(--muted);margin-top:4px}.status{font:8px var(--mono);text-transform:uppercase;padding:6px 8px;border:1px solid var(--border);display:inline-block}.status.confirmed{background:#e2e9e2;color:var(--green)}.status.rescheduled{background:#ece6d7}.status.cancelled{background:#eee0de;color:var(--red)}.status.completed{background:#e4e8df;color:var(--green)}.row-actions{display:flex;justify-content:flex-end;gap:5px}.iconbtn{width:32px;height:32px;border:1px solid var(--border);background:transparent;font-size:12px}.iconbtn:hover{background:var(--dark);color:#fff}.iconbtn.cancel-btn{color:var(--red);border-color:rgba(123,61,56,.35)}.iconbtn.cancel-btn:hover{background:var(--red);color:#fff}
+.side{display:grid;gap:25px}.today-list,.quick-list{padding:8px 22px 18px}.slot{display:flex;justify-content:space-between;gap:12px;padding:13px 0;border-bottom:1px solid var(--border)}.slot:last-child{border-bottom:0}.slot strong{font-size:12px}.slot small{display:block;font:8px var(--mono);color:var(--muted);margin-top:4px}.pill{font:8px var(--mono);padding:5px 7px;border:1px solid var(--border);height:max-content}
+.empty{padding:35px 22px;text-align:center;color:var(--muted);font-size:11px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.62);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:18px;z-index:10}.modal.show{display:flex}.modal-card{width:min(650px,100%);max-height:92vh;overflow:auto;background:var(--bg);padding:30px}.modal-top{display:flex;justify-content:space-between;gap:20px;margin-bottom:22px}.modal-top h2{font-size:34px;line-height:.95;letter-spacing:-.06em;margin-top:8px}.close{width:34px;height:34px;border:1px solid var(--border);background:transparent}.reschedule-summary{padding:15px;border:1px solid var(--border);background:#e8e5de;margin-bottom:18px}.reschedule-summary strong{font-size:14px}.reschedule-summary small{display:block;color:var(--muted);font:8px var(--mono);margin-top:5px}
+.cal-head{display:flex;justify-content:space-between;align-items:center;margin:15px 0 10px}.cal-head strong{font-size:13px}.date-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}.dayhead{font:7px var(--mono);color:var(--muted);text-align:center;padding:5px}.date-cell{min-height:52px;border:1px solid var(--border);background:transparent;text-align:center;padding:7px 3px}.date-cell.muted{opacity:.35}.date-cell.selected{background:var(--dark);color:#fff}.date-cell strong{display:block;font-size:14px}.date-cell small{font:7px var(--mono);color:var(--muted)}.date-cell.selected small{color:#aaa}
+.times{display:none}
+.schedule-wrap{border:1px solid var(--border);background:rgba(255,255,255,.12);margin-top:10px;max-height:430px;overflow:auto}
+.schedule-row{display:grid;grid-template-columns:78px 1fr;min-height:58px;border-bottom:1px solid var(--border)}
+.schedule-row:last-child{border-bottom:0}.schedule-time{padding:14px 10px;font:10px var(--mono);color:var(--muted);border-right:1px solid var(--border);display:flex;align-items:flex-start;justify-content:center}
+.schedule-slot{padding:7px;position:relative;transition:.18s}.schedule-slot.drag-over{background:#dedbd4;box-shadow:inset 0 0 0 2px var(--dark)}
+.booking-block{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:42px;padding:9px 11px;background:var(--dark);color:#fff;cursor:grab;box-shadow:0 7px 18px rgba(0,0,0,.12);transition:.18s}
+.booking-block:active{cursor:grabbing}.booking-block.dragging{opacity:.45;transform:scale(.98)}
+.booking-block strong{font-size:11px}.booking-block small{display:block;font:7px var(--mono);opacity:.68;margin-top:3px}
+.slot-empty{font:8px var(--mono);color:var(--muted);padding:13px 5px;opacity:.55}.drag-instruction{font:8px var(--mono);color:var(--muted);margin:0 0 8px}.modal-footer{display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--border);padding-top:18px;margin-top:22px}
+.toast{position:fixed;right:20px;bottom:20px;background:var(--dark);color:#fff;padding:14px 17px;font-size:10px;opacity:0;transform:translateY(10px);transition:.25s;z-index:20}.toast.show{opacity:1;transform:none}
+@media(max-width:1000px){.grid{grid-template-columns:1fr}.booking{grid-template-columns:95px 1fr 120px 75px}}
+@media(max-width:720px){.wrap{width:calc(100% - 24px)}.topbar{height:68px}.top-actions .btn:first-child{display:none}.stats{grid-template-columns:1fr 1fr}.stat:nth-child(2){border-right:0}.stat{border-bottom:1px solid var(--border)}.stat:nth-child(3),.stat:nth-child(4){border-bottom:0}.booking{grid-template-columns:1fr auto;gap:10px}.datebox{grid-row:1 / span 2}.barber{grid-column:2}.row-actions{grid-column:2}.times{grid-template-columns:repeat(3,1fr)}.head{align-items:start;flex-direction:column}}
+@media(max-width:480px){.page{padding-top:30px}.panel-head{padding:17px}.filters{padding:12px 17px}.booking{padding:16px 17px}.booking-list .booking .status{display:none}.modal-card{padding:23px 17px}.date-grid{gap:3px}.date-cell{min-height:48px}.stats{margin-bottom:20px}.stat strong{font-size:25px}}
+ .booking-block{width:100%;border:0;text-align:left}.booking-block span{float:right}.booking-block small{display:block;font:7px var(--mono);opacity:.7;margin-top:3px}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap" style="display:flex;align-items:center;justify-content:space-between;width:100%">
+    <div class="brand"><div class="logo">R</div><div><strong>RESO Haircut</strong><small>ADMIN DASHBOARD · INDRAMAYU</small></div></div>
+    <div class="top-actions"><button class="btn" id="resetDemo">Reset Demo</button><button class="btn dark" id="newBooking">+ Booking Baru</button></div>
+  </div>
+</header>
+
+<main class="wrap page">
+  <div class="head">
+    <div><span class="eyebrow">RESO / OPERATIONS</span><h1>Dashboard<br><i>Booking.</i></h1></div>
+    <p>Kelola jadwal booking, lihat slot hari ini, dan lakukan reschedule langsung dengan menekan tanggal atau jam booking.</p>
+  </div>
+
+  <section class="stats">
+    <div class="stat"><strong id="statToday">0</strong><span>Booking hari ini</span></div>
+    <div class="stat"><strong id="statUpcoming">0</strong><span>Akan datang</span></div>
+    <div class="stat"><strong id="statRevenue">Rp0</strong><span>Estimasi omzet</span></div>
+    <div class="stat"><strong id="statRescheduled">0</strong><span>Reschedule</span></div>
+  </section>
+
+  <div class="grid">
+    <section class="panel">
+      <div class="panel-head"><h2>Semua Booking</h2><small id="bookingCount">0 DATA</small></div>
+      <div class="filters">
+        <input id="search" placeholder="Cari nama, WhatsApp, layanan...">
+        <select id="statusFilter"><option value="all">Semua status</option><option value="confirmed">Confirmed</option><option value="rescheduled">Rescheduled</option><option value="cancelled">Cancelled</option><option value="completed">Completed</option></select>
+        <select id="barberFilter"><option value="all">Semua capster</option><option>Rezky</option><option>Iqbal</option></select>
+      </div>
+      <div class="booking-list" id="bookingList"></div>
+    </section>
+
+    <aside class="side">
+      <section class="panel">
+        <div class="panel-head"><h2>Hari Ini</h2><small id="todayLabel"></small></div>
+        <div class="today-list" id="todayList"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>Quick Actions</h2><small>SHORTCUT</small></div>
+        <div class="quick-list">
+          <button class="btn dark" style="width:100%;margin:7px 0" id="quickReschedule">Reschedule Booking</button>
+          <button class="btn" style="width:100%;margin:7px 0" id="quickToday">Tampilkan Hari Ini</button>
+          <button class="btn" style="width:100%;margin:7px 0" id="quickAll">Tampilkan Semua</button>
+        </div>
+      </section>
+    </aside>
+  </div>
+</main>
+
+<div class="modal" id="resModal">
+  <div class="modal-card">
+    <div class="modal-top"><div><span class="eyebrow">RESCHEDULE</span><h2>Pindahkan<br>jadwal.</h2></div><button class="close" id="closeModal">×</button></div>
+    <div class="reschedule-summary" id="resSummary"></div>
+    <div class="cal-head"><button class="btn" id="prevMonth">←</button><strong id="calTitle"></strong><button class="btn" id="nextMonth">→</button></div>
+    <div class="date-grid" id="dateGrid"></div>
+    <div class="cal-head"><strong>Atur jam booking</strong><small style="font:8px var(--mono);color:var(--muted)">DRAG BOOKING KE JAM LAIN</small></div>
+    <div class="drag-instruction">Klik/tahan blok booking, lalu geser vertikal ke slot jam yang diinginkan. Jadwal akan langsung diperbarui.</div>
+    <div class="schedule-wrap" id="timeGrid"></div>
+    <div class="modal-footer"><button class="btn" id="cancelModal">Batal</button><button class="btn dark" id="saveReschedule">Simpan Reschedule <span>→</span></button></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const API_URL="/api/reso";
+async function api(action,payload={}){const res=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8","Accept":"application/json, text/plain, */*"},cache:"no-store",body:JSON.stringify({action,...payload})});const text=await res.text();let data;try{data=JSON.parse(text)}catch(e){throw new Error("Server mengirim response bukan JSON (HTTP "+res.status+")")};if(!res.ok||data&&data.ok===false)throw new Error(data?.error||"Permintaan gagal");let result=data?.data!==undefined?data.data:data;return result;}
+const G=null, list=document.getElementById("bookingList"),search=document.getElementById("search"),status=document.getElementById("statusFilter"),barber=document.getElementById("barberFilter"),mn=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"],dn=["Min","Sen","Sel","Rab","Kam","Jum","Sab"],today=new Date();
+today.setHours(0,0,0,0);let bookings=[],current=null,selDate=null,selTime=null,view=new Date(today.getFullYear(),today.getMonth(),1);
+const k=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`,dt=s=>{let d=new Date(s+"T00:00:00");return`${dn[d.getDay()]}, ${d.getDate()} ${mn[d.getMonth()]} ${d.getFullYear()}`},esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+async function load(){try{bookings=await api("getBookings")||[];render()}catch(e){toast(e.message||"Gagal memuat booking")}}
+function render(){let q=search.value.toLowerCase(),sf=status.value,bf=barber.value,r=bookings.filter(b=>(!q||`${b.name} ${b.wa} ${b.service} ${b.id}`.toLowerCase().includes(q))&&(sf==="all"||b.status.toLowerCase()===sf)&&(bf==="all"||b.barber===bf));list.innerHTML=r.length?r.map(b=>`<article class="booking"><div class="datebox"><strong>${b.time}</strong><small>${dt(b.date)}</small></div><div class="client"><strong>${esc(b.name)}</strong><small>${esc(b.service)} · ${esc(b.wa)}</small></div><div class="barber"><strong>${esc(b.barber)}</strong><small>${esc(b.note)}</small><span class="status ${b.status.toLowerCase()}">${b.status}</span></div><div class="row-actions"><button class="iconbtn" onclick="openRes('${b.id}')">↻</button><button class="iconbtn" onclick="done('${b.id}')">✓</button><button class="iconbtn cancel-btn" onclick="cancel('${b.id}')">${b.status==="Cancelled"?"↺":"×"}</button></div></article>`).join(""):`<div class="empty">Tidak ada booking.</div>`;let a=bookings.filter(b=>!["Cancelled","Completed"].includes(b.status));document.getElementById("bookingCount").textContent=r.length+" DATA";document.getElementById("statToday").textContent=a.filter(b=>b.date===k(today)).length;document.getElementById("statUpcoming").textContent=a.filter(b=>b.date>k(today)).length;document.getElementById("statRevenue").textContent="Rp"+a.reduce((s,b)=>s+Number(b.price||0),0).toLocaleString("id-ID");document.getElementById("statRescheduled").textContent=bookings.filter(b=>b.status==="Rescheduled").length;document.getElementById("todayLabel").textContent=today.getDate()+" "+mn[today.getMonth()]}
+function openRes(id){current=bookings.find(b=>b.id===id);if(!current)return;selDate=current.date;selTime=current.time;let d=new Date(selDate+"T00:00:00");view=new Date(d.getFullYear(),d.getMonth(),1);document.getElementById("resModal").classList.add("show");cal();times();sum()}
+function sum(){document.getElementById("resSummary").innerHTML=`<strong>${esc(current.name)} · ${esc(current.service)}</strong><small>${dt(current.date)} · ${current.time} · ${esc(current.barber)}</small>`}
+function cal(){let f=new Date(view.getFullYear(),view.getMonth(),1),l=new Date(view.getFullYear(),view.getMonth()+1,0),c=[];for(let i=0;i<f.getDay();i++)c.push('<button class="date-cell muted" disabled></button>');for(let i=1;i<=l.getDate();i++){let d=new Date(view.getFullYear(),view.getMonth(),i),x=k(d);c.push(`<button class="date-cell ${x===selDate?"selected":""}" onclick="pickDate('${x}')"><strong>${i}</strong><small>${dn[d.getDay()]}</small></button>`)}document.getElementById("calTitle").textContent=mn[view.getMonth()]+" "+view.getFullYear();document.getElementById("dateGrid").innerHTML=dn.map(x=>`<div class="dayhead">${x}</div>`).join("")+c.join("")}
+function pickDate(x){selDate=x;selTime=null;cal();times()}
+async function times(){
+  if(!current||!selDate)return;
+  const box=document.getElementById("timeGrid");
+  box.innerHTML='<div class="slot-empty" style="padding:20px;text-align:center">MEMUAT JAM...</div>';
+  try{
+    const all=await api("getBookings");
+    const dayBookings=(all||[]).filter(b=>b.date===selDate&&b.barber===current.barber&&b.status!=="Cancelled");
+    const byTime={};
+    dayBookings.forEach(b=>{byTime[b.time]=b});
+    let html="";
+    for(let h=10;h<22;h++){
+      for(const m of [0,30]){
+        const t=String(h).padStart(2,"0")+":"+String(m).padStart(2,"0");
+        const b=byTime[t];
+        const isCurrent=b&&b.id===current.id;
+        html+=`<div class="schedule-row">
+          <div class="schedule-time">${t}</div>
+          <div class="schedule-slot ${b?"booked-slot":"empty-slot"}" data-time="${t}">
+            ${b
+              ? `<button class="booking-block ${isCurrent?"current":""}" draggable="${isCurrent}" data-time="${t}" ${isCurrent?`onclick="pickTime('${t}')"`:""}><strong>${esc(b.name)}</strong><small>${esc(b.service)} · ${esc(b.barber)}</small><span>${isCurrent&&selTime===t?"✓":"●"}</span></button>`
+              : `<div class="slot-empty">KOSONG</div>`}
+          </div>
+        </div>`;
+      }
+    }
+    box.innerHTML=html;
+    bindDragDrop();
+    sum();
+  }catch(e){
+    console.error(e);
+    box.innerHTML='<div class="slot-empty" style="padding:20px;text-align:center">GAGAL MEMUAT JAM</div>';
+    toast(e.message||"Gagal memuat jadwal");
+  }
+}
+
+function bindDragDrop(){
+  const block=document.querySelector(".booking-block.current");
+  const slots=document.querySelectorAll(".schedule-slot");
+  if(block){
+    block.addEventListener("dragstart",e=>{
+      e.dataTransfer.setData("text/plain",block.dataset.time);
+      block.classList.add("dragging");
+    });
+    block.addEventListener("dragend",()=>block.classList.remove("dragging"));
+  }
+  slots.forEach(slot=>{
+    slot.addEventListener("dragover",e=>{e.preventDefault();slot.classList.add("drag-over")});
+    slot.addEventListener("dragleave",()=>slot.classList.remove("drag-over"));
+    slot.addEventListener("drop",e=>{
+      e.preventDefault();slot.classList.remove("drag-over");
+      const target=slot.dataset.time;
+      if(!target)return;
+      const occupied=slot.classList.contains("booked-slot") && target!==current.time;
+      if(occupied)return toast("Jam tersebut sudah ada booking.");
+      pickTime(target);
+    });
+  });
+}
+function pickTime(t){selTime=t;times()}
+document.getElementById("prevMonth").onclick=()=>{view.setMonth(view.getMonth()-1);cal()};document.getElementById("nextMonth").onclick=()=>{view.setMonth(view.getMonth()+1);cal()};document.getElementById("closeModal").onclick=()=>document.getElementById("resModal").classList.remove("show");document.getElementById("cancelModal").onclick=()=>document.getElementById("resModal").classList.remove("show");
+document.getElementById("saveReschedule").onclick=async()=>{
+  if(!selDate||!selTime)return toast("Pilih tanggal dan jam dulu.");
+  try{
+    await api("updateBooking",{id:current.id,date:selDate,time:selTime,status:"Rescheduled",note:"Jadwal dipindahkan melalui dashboard"});
+    toast("Reschedule berhasil");
+    document.getElementById("resModal").classList.remove("show");
+    await load();
+  }catch(e){toast(e.message||"Reschedule gagal")}
+};
+async function cancel(id){
+  let b=bookings.find(x=>x.id===id);
+  if(!b)return;
+  if(b.status==="Completed")return toast("Booking selesai tidak bisa dibatalkan.");
+  try{
+    if(b.status==="Cancelled"){await api("reactivateBooking",{id});await load();return}
+    if(confirm("Batalkan booking "+b.name+"?")){await api("cancelBooking",{id,reason:"Dibatalkan melalui dashboard"});toast("Booking dibatalkan");await load()}
+  }catch(e){toast(e.message||"Gagal mengubah status")}
+}
+async function done(id){
+  if(confirm("Tandai selesai & sudah bayar?"))try{await api("completeBookingServer",{id});toast("Booking selesai");await load()}catch(e){toast(e.message||"Gagal")}
+}).completeBookingServer(id)}
+search.oninput=load;status.onchange=load;barber.onchange=load;document.getElementById("quickReschedule").onclick=()=>{let b=bookings.find(x=>!["Cancelled","Completed"].includes(x.status));if(b)openRes(b.id)};document.getElementById("quickAll").onclick=()=>{search.value="";status.value="all";barber.value="all";load()};document.getElementById("newBooking").onclick=()=>location.href="?page=booking";document.getElementById("resetDemo").style.display="none";
+function toast(x){let t=document.getElementById("toast");t.textContent=x;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2200)}load();
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "rewrites": [
+    { "source": "/admin", "destination": "/admin.html" }
+  ],
+  "headers": [
+    {
+      "source": "/api/reso",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, proxy-revalidate" }
+      ]
+    }
+  ]
+}
