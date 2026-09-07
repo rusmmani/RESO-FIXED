@@ -379,7 +379,7 @@ button,a{touch-action:manipulation}
 .booking-service-list{border-top:1px solid var(--border)}
 .booking-service{width:100%;border:0;border-bottom:1px solid var(--border);background:transparent;display:grid;grid-template-columns:34px 1fr auto 28px;gap:12px;align-items:center;text-align:left;padding:16px 4px;cursor:pointer;transition:.2s}
 .booking-service:hover{background:#e8e5de;padding-left:10px;padding-right:10px}
-.booking-service.active{background:var(--dark);color:#fff;padding-left:10px;padding-right:10px}
+.booking-service.active{background:var(--dark);color:#fff;padding-left:10px;padding-right:10px}.booking-service.active .arrow{font-size:0}.booking-service.active .arrow:after{content:"✓";font-size:14px}.booking-selected-note{margin:0 0 18px;padding:11px 13px;background:#e8e5de;font:9px var(--mono);color:var(--muted);line-height:1.6}.booking-selected-note strong{color:var(--text)}
 .booking-service .num{font:8px var(--mono);color:var(--muted)}
 .booking-service strong{font-size:13px}.booking-service small{display:block;color:var(--muted);font:8px var(--mono);margin-top:4px}
 .booking-service.active small,.booking-service.active .num{color:#aaa}
@@ -665,12 +665,34 @@ async function api(action,payload={}){
 }
 const modal=document.getElementById("bookingModal"),close=document.getElementById("modalClose"),booking=document.getElementById("bookingButton");
 const steps=[...document.querySelectorAll(".booking-step")],stepNo=document.getElementById("bookingStepNumber"),progress=document.getElementById("bookingProgress");
-const state={category:"hair",service:null,price:null,duration:null,barber:null,date:null,time:null,additionalFee:0};
+const state={category:"hair",services:[],service:null,price:null,duration:null,barber:null,date:null,time:null,additionalFee:0};
 const services={hair:[["Haircut (+ Wash)","50 mnt","Rp50.000"],["Shave Trim","15 mnt","Rp10.000"],["Head Massage","5 mnt","Rp10.000"]],treatment:[["Creambath","20 mnt","Rp65.000"],["Hair Mask","20 mnt","Rp55.000"],["Catok","10 mnt","Rp25.000"]],coloring:[["Basic Color","60 mnt","Rp60.000"],["Bleach (highlight/full)","90 mnt","Rp100.000"],["Fashion Color (highlight)","180 mnt","Rp330.000"],["Fashion Color (full)","200 mnt","Rp420.000"]],special:[["Down Perm","40 mnt","Rp110.000"],["Shang Perm","90 mnt","Rp300.000"],["Design Perm","90 mnt","Rp350.000"],["Curly Perm (Cold)","60 mnt","Rp250.000"],["Curly Perm (Hot)","60 mnt","Rp300.000"],["Keratine","90 mnt","Rp250.000"],["Smoothing","90 mnt","Rp225.000"],["Cornrow","240 mnt","Rp300.000"],["Braids","240 mnt","Rp350.000"]]};
 const cats=[["hair","HAIR",3],["treatment","TREATMENT",3],["coloring","COLORING",4],["special","SPECIAL TREATMENT",9]],catBox=document.getElementById("bookingCategories"),serviceBox=document.getElementById("bookingServices");
 catBox.innerHTML=cats.map(x=>`<button class="booking-cat ${x[0]=="hair"?"active":""}" data-cat="${x[0]}"><strong>${x[1]}</strong><small>${String(x[2]).padStart(2,"0")} layanan</small></button>`).join("");
-function rs(){serviceBox.innerHTML=services[state.category].map((x,i)=>`<button class="booking-service ${state.service===x[0]?"active":""}" data-i="${i}"><span class="num">${String(i+1).padStart(2,"0")}</span><span><strong>${x[0]}</strong><small>${x[1]}</small></span><span class="price">${x[2]}</span><span>→</span></button>`).join("");serviceBox.querySelectorAll("button").forEach(b=>b.onclick=()=>{let x=services[state.category][+b.dataset.i];state.service=x[0];state.duration=x[1];state.price=x[2];rs()})}rs();
-catBox.querySelectorAll("button").forEach(b=>b.onclick=()=>{state.category=b.dataset.cat;state.service=null;state.price=null;state.duration=null;catBox.querySelectorAll("button").forEach(x=>x.classList.toggle("active",x===b));rs()});document.querySelectorAll(".service-categories .category-btn").forEach(btn=>btn.addEventListener("click",()=>{const cat=btn.dataset.category;document.querySelectorAll(".service-categories .category-btn").forEach(x=>x.classList.toggle("active",x===btn));document.querySelectorAll(".service-panels .service-panel").forEach(panel=>panel.classList.toggle("active",panel.dataset.panel===cat))}));
+function serviceDurationMinutes(v){const m=String(v||"").match(/\d+/);return m?Number(m[0]):0}
+function syncSelected(){
+  state.service=state.services.map(x=>x.name).join(" + ")||null;
+  const total=state.services.reduce((sum,x)=>sum+priceNumber(x.price),0);
+  const mins=state.services.reduce((sum,x)=>sum+serviceDurationMinutes(x.duration),0);
+  state.price=total?formatRupiah(total):null;
+  state.duration=mins?(mins+" mnt"):null;
+}
+function rs(){
+  const selectedCount=state.services.length;
+  const selectedNote=selectedCount?`<div class="booking-selected-note"><strong>${selectedCount} layanan dipilih:</strong> ${state.services.map(x=>x.name).join(" · ")}<br>Total layanan: <strong>${formatRupiah(state.services.reduce((s,x)=>s+priceNumber(x.price),0))}</strong> · Durasi total: <strong>${state.duration||"-"}</strong></div>`:`<div class="booking-selected-note">Pilih <strong>satu atau beberapa layanan</strong>. Klik layanan yang dipilih lagi untuk membatalkan.</div>`;
+  serviceBox.innerHTML=selectedNote+services[state.category].map((x,i)=>{
+    const active=state.services.some(s=>s.name===x[0]);
+    return `<button class="booking-service ${active?"active":""}" data-i="${i}"><span class="num">${String(i+1).padStart(2,"0")}</span><span><strong>${x[0]}</strong><small>${x[1]}</small></span><span class="price">${x[2]}</span><span class="arrow">→</span></button>`;
+  }).join("");
+  serviceBox.querySelectorAll("button").forEach(b=>b.onclick=()=>{
+    const x=services[state.category][+b.dataset.i];
+    const idx=state.services.findIndex(s=>s.name===x[0]);
+    if(idx>=0) state.services.splice(idx,1); else state.services.push({name:x[0],duration:x[1],price:x[2],category:state.category});
+    syncSelected(); rs();
+  });
+}
+rs();
+catBox.querySelectorAll("button").forEach(b=>b.onclick=()=>{state.category=b.dataset.cat;catBox.querySelectorAll("button").forEach(x=>x.classList.toggle("active",x===b));rs()});document.querySelectorAll(".service-categories .category-btn").forEach(btn=>btn.addEventListener("click",()=>{const cat=btn.dataset.category;document.querySelectorAll(".service-categories .category-btn").forEach(x=>x.classList.toggle("active",x===btn));document.querySelectorAll(".service-panels .service-panel").forEach(panel=>panel.classList.toggle("active",panel.dataset.panel===cat))}));
 document.querySelectorAll(".barber-option").forEach(b=>b.onclick=()=>{state.barber=b.dataset.barber;state.additionalFee=state.barber==="Rezky"?5000:0;document.querySelectorAll(".barber-option").forEach(x=>x.classList.toggle("active",x===b));loadTimes()});
 const dp=document.getElementById("datePicker"),tg=document.getElementById("timeGrid"),ml=document.getElementById("bookingMonth"),now=new Date();now.setHours(0,0,0,0);
 const dates=[...Array(21)].map((_,i)=>{let d=new Date(now);d.setDate(now.getDate()+i);return d}),mn=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"],dn=["Min","Sen","Sel","Rab","Kam","Jum","Sab"],lk=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
@@ -699,15 +721,15 @@ async function loadTimes(){
 }
 state.date=lk(dates[0]);
 rd();
-function open(pref){if(pref)for(const[c,l]of Object.entries(services)){let f=l.find(x=>x[0]===pref);if(f){state.category=c;state.service=f[0];state.duration=f[1];state.price=f[2]}}rs();modal.classList.add("active"); modal.setAttribute("aria-hidden","false");document.body.classList.add("modal-open");go(1)}
+function open(pref){state.services=[];state.service=null;state.price=null;state.duration=null;if(pref){for(const[c,l]of Object.entries(services)){let f=l.find(x=>x[0]===pref);if(f){state.category=c;if(!state.services.some(s=>s.name===f[0]))state.services.push({name:f[0],duration:f[1],price:f[2],category:c});break}}syncSelected()}rs();modal.classList.add("active"); modal.setAttribute("aria-hidden","false");document.body.classList.add("modal-open");go(1)}
 function hide(){modal.classList.remove("active"); modal.setAttribute("aria-hidden","true");document.body.classList.remove("modal-open")}
 function go(n){steps.forEach(x=>x.classList.toggle("active",+x.dataset.step===n));stepNo.textContent=String(n).padStart(2,"0");progress.style.width=n*20+"%";document.getElementById("bookingBack").disabled=n===1;document.getElementById("bookingNext").innerHTML=n===5?"Konfirmasi Booking <span>✓</span>":"Lanjut <span>→</span>"}
 function normalizeWa(v){v=String(v||"").replace(/[^0-9+]/g,"");if(v.startsWith("+62"))v="0"+v.slice(3);else if(v.startsWith("62"))v="0"+v.slice(2);return v}
-function valid(n){if(n===4){const el=document.getElementById("clientWa");el.value=normalizeWa(el.value);if(!/^08\d{8,12}$/.test(el.value))return alert("Nomor WhatsApp harus diawali 08."),false}if(n===1&&!state.service)return alert("Pilih layanan dulu."),false;if(n===2&&!state.barber)return alert("Pilih capster dulu."),false;if(n===3&&(!state.date||!state.time))return alert("Pilih tanggal dan jam dulu."),false;if(n===4&&!document.getElementById("clientName").value.trim())return alert("Isi nama dulu."),false;if(n===4&&!document.getElementById("clientWa").value.trim())return alert("Isi WhatsApp dulu."),false;return true}
+function valid(n){if(n===4){const el=document.getElementById("clientWa");el.value=normalizeWa(el.value);if(!/^08\d{8,12}$/.test(el.value))return alert("Nomor WhatsApp harus diawali 08."),false}if(n===1&&!state.services.length)return alert("Pilih minimal satu layanan dulu."),false;if(n===2&&!state.barber)return alert("Pilih capster dulu."),false;if(n===3&&(!state.date||!state.time))return alert("Pilih tanggal dan jam dulu."),false;if(n===4&&!document.getElementById("clientName").value.trim())return alert("Isi nama dulu."),false;if(n===4&&!document.getElementById("clientWa").value.trim())return alert("Isi WhatsApp dulu."),false;return true}
 function priceNumber(v){return Number(String(v||"").replace(/[^0-9]/g,""))||0}
 function formatRupiah(v){return "Rp"+Number(v||0).toLocaleString("id-ID")}
 function totalPrice(){return priceNumber(state.price)+state.additionalFee}
-function summary(){let d=new Date(state.date+"T00:00:00");const feeRow=state.additionalFee?`<div class="summary-row"><span>Biaya Rezky</span><strong>${formatRupiah(state.additionalFee)}<small>Biaya tambahan capster Rezky</small></strong></div>`:"";document.getElementById("bookingSummary").innerHTML=`<div class="summary-row"><span>Layanan</span><strong>${state.service}<small>${state.duration} · ${state.price}</small></strong></div><div class="summary-row"><span>Capster</span><strong>${state.barber}</strong></div>${feeRow}<div class="summary-row"><span>Total</span><strong>${formatRupiah(totalPrice())}</strong></div><div class="summary-row"><span>Jadwal</span><strong>${dn[d.getDay()]}, ${d.getDate()} ${mn[d.getMonth()]} ${d.getFullYear()}<small>${state.time}</small></strong></div><div class="summary-row"><span>Client</span><strong>${document.getElementById("clientName").value}<small>${document.getElementById("clientWa").value}</small></strong></div>`}
+function summary(){let d=new Date(state.date+"T00:00:00");const feeRow=state.additionalFee?`<div class="summary-row"><span>Biaya Rezky</span><strong>${formatRupiah(state.additionalFee)}<small>Biaya tambahan capster Rezky</small></strong></div>`:"";document.getElementById("bookingSummary").innerHTML=`<div class="summary-row"><span>Layanan</span><strong>${state.services.map(x=>x.name).join(" + ")}<small>${state.duration} · ${formatRupiah(state.services.reduce((s,x)=>s+priceNumber(x.price),0))}</small></strong></div><div class="summary-row"><span>Capster</span><strong>${state.barber}</strong></div>${feeRow}<div class="summary-row"><span>Total</span><strong>${formatRupiah(totalPrice())}</strong></div><div class="summary-row"><span>Jadwal</span><strong>${dn[d.getDay()]}, ${d.getDate()} ${mn[d.getMonth()]} ${d.getFullYear()}<small>${state.time}</small></strong></div><div class="summary-row"><span>Client</span><strong>${document.getElementById("clientName").value}<small>${document.getElementById("clientWa").value}</small></strong></div>`}
 booking.onclick=e=>{e.preventDefault();open()};document.getElementById("priceBookingBtn")?.addEventListener("click",()=>open());document.querySelectorAll(".service-arrow").forEach(b=>b.onclick=()=>open(b.dataset.service));close.onclick=hide;modal.querySelector(".modal-overlay").onclick=hide;
 document.getElementById("bookingBack").onclick=()=>{let n=steps.findIndex(x=>x.classList.contains("active"))+1;if(n>1)go(n-1)};
 document.getElementById("bookingNext").onclick=()=>{let n=steps.findIndex(x=>x.classList.contains("active"))+1;if(n<5){if(valid(n)){go(n+1);if(n+1===5)summary()}}else if(valid(4)){let p={
