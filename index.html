@@ -551,7 +551,7 @@ button,a{touch-action:manipulation}
 <p class="address">Jl. Cimanuk, Karangmalang, Kec. Indramayu, Kabupaten Indramayu, Jawa Barat 45213</p>
 <div class="location-meta">
 <div><span>Jam kerja</span><strong>Senin — Minggu · hari ini</strong><small>10.00 — 22.00</small></div>
-<div><span>WhatsApp</span><a href="https://wa.me/6283121900913" target="_blank">+62 831-2190-0913 ↗</a></div>
+<div><span>WhatsApp</span><a href="https://wa.me/6283845500771" target="_blank">+62 838-4550-0771 ↗</a></div>
 </div>
 <a class="maps-button" href="https://www.google.com/maps/search/?api=1&amp;query=RESO+Haircut+Indramayu" target="_blank">Buka di Google Maps <span>↗</span></a>
 </div>
@@ -665,13 +665,13 @@ async function api(action,payload={}){
 }
 const modal=document.getElementById("bookingModal"),close=document.getElementById("modalClose"),booking=document.getElementById("bookingButton");
 const steps=[...document.querySelectorAll(".booking-step")],stepNo=document.getElementById("bookingStepNumber"),progress=document.getElementById("bookingProgress");
-const state={category:"hair",service:null,price:null,duration:null,barber:null,date:null,time:null};
+const state={category:"hair",service:null,price:null,duration:null,barber:null,date:null,time:null,additionalFee:0};
 const services={hair:[["Haircut (+ Wash)","50 mnt","Rp50.000"],["Shave Trim","15 mnt","Rp10.000"],["Head Massage","5 mnt","Rp10.000"]],treatment:[["Creambath","20 mnt","Rp65.000"],["Hair Mask","20 mnt","Rp55.000"],["Catok","10 mnt","Rp25.000"]],coloring:[["Basic Color","60 mnt","Rp60.000"],["Bleach (highlight/full)","90 mnt","Rp100.000"],["Fashion Color (highlight)","180 mnt","Rp330.000"],["Fashion Color (full)","200 mnt","Rp420.000"]],special:[["Down Perm","40 mnt","Rp110.000"],["Shang Perm","90 mnt","Rp300.000"],["Design Perm","90 mnt","Rp350.000"],["Curly Perm (Cold)","60 mnt","Rp250.000"],["Curly Perm (Hot)","60 mnt","Rp300.000"],["Keratine","90 mnt","Rp250.000"],["Smoothing","90 mnt","Rp225.000"],["Cornrow","240 mnt","Rp300.000"],["Braids","240 mnt","Rp350.000"]]};
 const cats=[["hair","HAIR",3],["treatment","TREATMENT",3],["coloring","COLORING",4],["special","SPECIAL TREATMENT",9]],catBox=document.getElementById("bookingCategories"),serviceBox=document.getElementById("bookingServices");
 catBox.innerHTML=cats.map(x=>`<button class="booking-cat ${x[0]=="hair"?"active":""}" data-cat="${x[0]}"><strong>${x[1]}</strong><small>${String(x[2]).padStart(2,"0")} layanan</small></button>`).join("");
 function rs(){serviceBox.innerHTML=services[state.category].map((x,i)=>`<button class="booking-service ${state.service===x[0]?"active":""}" data-i="${i}"><span class="num">${String(i+1).padStart(2,"0")}</span><span><strong>${x[0]}</strong><small>${x[1]}</small></span><span class="price">${x[2]}</span><span>→</span></button>`).join("");serviceBox.querySelectorAll("button").forEach(b=>b.onclick=()=>{let x=services[state.category][+b.dataset.i];state.service=x[0];state.duration=x[1];state.price=x[2];rs()})}rs();
 catBox.querySelectorAll("button").forEach(b=>b.onclick=()=>{state.category=b.dataset.cat;state.service=null;state.price=null;state.duration=null;catBox.querySelectorAll("button").forEach(x=>x.classList.toggle("active",x===b));rs()});document.querySelectorAll(".service-categories .category-btn").forEach(btn=>btn.addEventListener("click",()=>{const cat=btn.dataset.category;document.querySelectorAll(".service-categories .category-btn").forEach(x=>x.classList.toggle("active",x===btn));document.querySelectorAll(".service-panels .service-panel").forEach(panel=>panel.classList.toggle("active",panel.dataset.panel===cat))}));
-document.querySelectorAll(".barber-option").forEach(b=>b.onclick=()=>{state.barber=b.dataset.barber;document.querySelectorAll(".barber-option").forEach(x=>x.classList.toggle("active",x===b));loadTimes()});
+document.querySelectorAll(".barber-option").forEach(b=>b.onclick=()=>{state.barber=b.dataset.barber;state.additionalFee=state.barber==="Rezky"?5000:0;document.querySelectorAll(".barber-option").forEach(x=>x.classList.toggle("active",x===b));loadTimes()});
 const dp=document.getElementById("datePicker"),tg=document.getElementById("timeGrid"),ml=document.getElementById("bookingMonth"),now=new Date();now.setHours(0,0,0,0);
 const dates=[...Array(21)].map((_,i)=>{let d=new Date(now);d.setDate(now.getDate()+i);return d}),mn=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"],dn=["Min","Sen","Sel","Rab","Kam","Jum","Sab"],lk=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 function rd(){ml.textContent=(state.date?new Date(state.date+"T00:00:00"):dates[0]).toLocaleString("id-ID",{month:"long",year:"numeric"}).toUpperCase();dp.innerHTML=dates.map((d,i)=>`<button class="date-option ${state.date===lk(d)?"active":""}" data-date="${lk(d)}"><span class="day">${i?"": "Hari ini"}</span><strong>${d.getDate()}</strong><small>${mn[d.getMonth()].slice(0,3)}</small></button>`).join("");dp.querySelectorAll("button").forEach(b=>b.onclick=()=>{state.date=b.dataset.date;state.time=null;rd();loadTimes()})}
@@ -704,7 +704,10 @@ function hide(){modal.classList.remove("active"); modal.setAttribute("aria-hidde
 function go(n){steps.forEach(x=>x.classList.toggle("active",+x.dataset.step===n));stepNo.textContent=String(n).padStart(2,"0");progress.style.width=n*20+"%";document.getElementById("bookingBack").disabled=n===1;document.getElementById("bookingNext").innerHTML=n===5?"Konfirmasi Booking <span>✓</span>":"Lanjut <span>→</span>"}
 function normalizeWa(v){v=String(v||"").replace(/[^0-9+]/g,"");if(v.startsWith("+62"))v="0"+v.slice(3);else if(v.startsWith("62"))v="0"+v.slice(2);return v}
 function valid(n){if(n===4){const el=document.getElementById("clientWa");el.value=normalizeWa(el.value);if(!/^08\d{8,12}$/.test(el.value))return alert("Nomor WhatsApp harus diawali 08."),false}if(n===1&&!state.service)return alert("Pilih layanan dulu."),false;if(n===2&&!state.barber)return alert("Pilih capster dulu."),false;if(n===3&&(!state.date||!state.time))return alert("Pilih tanggal dan jam dulu."),false;if(n===4&&!document.getElementById("clientName").value.trim())return alert("Isi nama dulu."),false;if(n===4&&!document.getElementById("clientWa").value.trim())return alert("Isi WhatsApp dulu."),false;return true}
-function summary(){let d=new Date(state.date+"T00:00:00");document.getElementById("bookingSummary").innerHTML=`<div class="summary-row"><span>Layanan</span><strong>${state.service}<small>${state.duration} · ${state.price}</small></strong></div><div class="summary-row"><span>Capster</span><strong>${state.barber}</strong></div><div class="summary-row"><span>Jadwal</span><strong>${dn[d.getDay()]}, ${d.getDate()} ${mn[d.getMonth()]} ${d.getFullYear()}<small>${state.time}</small></strong></div><div class="summary-row"><span>Client</span><strong>${document.getElementById("clientName").value}<small>${document.getElementById("clientWa").value}</small></strong></div>`}
+function priceNumber(v){return Number(String(v||"").replace(/[^0-9]/g,""))||0}
+function formatRupiah(v){return "Rp"+Number(v||0).toLocaleString("id-ID")}
+function totalPrice(){return priceNumber(state.price)+state.additionalFee}
+function summary(){let d=new Date(state.date+"T00:00:00");const feeRow=state.additionalFee?`<div class="summary-row"><span>Biaya Rezky</span><strong>${formatRupiah(state.additionalFee)}<small>Biaya tambahan capster Rezky</small></strong></div>`:"";document.getElementById("bookingSummary").innerHTML=`<div class="summary-row"><span>Layanan</span><strong>${state.service}<small>${state.duration} · ${state.price}</small></strong></div><div class="summary-row"><span>Capster</span><strong>${state.barber}</strong></div>${feeRow}<div class="summary-row"><span>Total</span><strong>${formatRupiah(totalPrice())}</strong></div><div class="summary-row"><span>Jadwal</span><strong>${dn[d.getDay()]}, ${d.getDate()} ${mn[d.getMonth()]} ${d.getFullYear()}<small>${state.time}</small></strong></div><div class="summary-row"><span>Client</span><strong>${document.getElementById("clientName").value}<small>${document.getElementById("clientWa").value}</small></strong></div>`}
 booking.onclick=e=>{e.preventDefault();open()};document.getElementById("priceBookingBtn")?.addEventListener("click",()=>open());document.querySelectorAll(".service-arrow").forEach(b=>b.onclick=()=>open(b.dataset.service));close.onclick=hide;modal.querySelector(".modal-overlay").onclick=hide;
 document.getElementById("bookingBack").onclick=()=>{let n=steps.findIndex(x=>x.classList.contains("active"))+1;if(n>1)go(n-1)};
 document.getElementById("bookingNext").onclick=()=>{let n=steps.findIndex(x=>x.classList.contains("active"))+1;if(n<5){if(valid(n)){go(n+1);if(n+1===5)summary()}}else if(valid(4)){let p={
@@ -717,6 +720,8 @@ document.getElementById("bookingNext").onclick=()=>{let n=steps.findIndex(x=>x.c
   service:state.service,
   price:state.price,
   duration:state.duration,
+  additionalFee:state.additionalFee,
+  totalPrice:totalPrice(),
   barber:state.barber,
   date:state.date,
   time:state.time
@@ -725,9 +730,30 @@ let btn=document.getElementById("bookingNext");
 btn.disabled=true;
 api("createBooking",p).then(r=>{
   btn.disabled=false;
-  alert("Booking berhasil!\nID: "+r.id);
   hide();
   loadTimes();
+  const adminWa="6283845500771";
+  const d=new Date(state.date+"T00:00:00");
+  const message=[
+    "Halo Admin RESO Haircut, saya ingin konfirmasi booking.",
+    "",
+    "*DATA BOOKING*",
+    "ID: "+(r.id||"-"),
+    "Nama: "+p.name,
+    "WhatsApp: "+p.wa,
+    "Layanan: "+p.service,
+    "Durasi: "+p.duration,
+    "Capster: "+p.barber,
+    "Tanggal: "+dn[d.getDay()]+", "+d.getDate()+" "+mn[d.getMonth()]+" "+d.getFullYear(),
+    "Jam: "+p.time,
+    "Harga layanan: "+p.price,
+    (p.additionalFee?"Biaya tambahan Rezky: "+formatRupiah(p.additionalFee):null),
+    "Total: "+formatRupiah(p.totalPrice),
+    "Catatan: "+(p.note||"-"),
+    "Kode promo: "+(p.promo||"-"),
+    "Pengingat 1 jam: "+(p.reminder?"Ya":"Tidak")
+  ].filter(Boolean).join("\n");
+  window.location.href="https://wa.me/"+adminWa+"?text="+encodeURIComponent(message);
 }).catch(e=>{
   btn.disabled=false;
   alert(e.message||"Booking gagal");
