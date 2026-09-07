@@ -45,6 +45,9 @@ function doPost(e) {
       case 'cancelBooking':
         result = cancelBooking(p.id, p.reason);
         break;
+      case 'deleteBooking':
+        result = deleteBooking(p.id);
+        break;
       case 'reactivateBooking':
         result = reactivateBooking(p.id);
         break;
@@ -196,8 +199,22 @@ function updateBooking(p) {
 }
 
 function cancelBooking(id, reason) {
-  setStatus_(id, 'Cancelled', reason || 'Dibatalkan');
-  return {ok:true};
+  // Cancel sekarang benar-benar menghapus booking dari Spreadsheet.
+  // Data tidak hanya diubah statusnya menjadi Cancelled.
+  return deleteBooking(id);
+}
+
+function deleteBooking(id) {
+  const sh = getSheet_();
+  const values = sh.getDataRange().getValues();
+  for (let i=1; i<values.length; i++) {
+    if (String(values[i][0]) === String(id)) {
+      const row = i + 1;
+      sh.deleteRow(row);
+      return {ok:true, deleted:true, id:String(id)};
+    }
+  }
+  throw new Error('Booking tidak ditemukan.');
 }
 
 function reactivateBooking(id) {
