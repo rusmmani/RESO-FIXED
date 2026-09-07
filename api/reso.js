@@ -44,7 +44,7 @@ function looksLikeGoogleLoginOrError(text) {
     s.includes('<html');
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (!GAS_URL) {
     return sendJson(res, 500, {
       ok: false,
@@ -138,3 +138,5 @@ export default async function handler(req, res) {
     });
   }
 }
+
+module.exports = handler;
