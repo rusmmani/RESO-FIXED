@@ -191,7 +191,7 @@ async function cancel(id){
 }
 async function done(id){
   if(confirm("Tandai selesai & sudah bayar?"))try{await api("completeBookingServer",{id});toast("Booking selesai");await load()}catch(e){toast(e.message||"Gagal")}
-}).completeBookingServer(id)}
+}
 search.oninput=load;status.onchange=load;barber.onchange=load;document.getElementById("quickReschedule").onclick=()=>{let b=bookings.find(x=>!["Cancelled","Completed"].includes(x.status));if(b)openRes(b.id)};document.getElementById("quickAll").onclick=()=>{search.value="";status.value="all";barber.value="all";load()};document.getElementById("newBooking").onclick=()=>location.href="?page=booking";document.getElementById("resetDemo").style.display="none";
 function toast(x){let t=document.getElementById("toast");t.textContent=x;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2200)}load();
 </script>
