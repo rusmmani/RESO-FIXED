@@ -34,9 +34,27 @@
 @media(max-width:720px){.wrap{width:calc(100% - 24px)}.topbar{height:68px}.top-actions .btn:first-child{display:none}.stats{grid-template-columns:1fr 1fr}.stat:nth-child(2){border-right:0}.stat{border-bottom:1px solid var(--border)}.stat:nth-child(3),.stat:nth-child(4){border-bottom:0}.booking{grid-template-columns:1fr auto;gap:10px}.datebox{grid-row:1 / span 2}.barber{grid-column:2}.row-actions{grid-column:2}.times{grid-template-columns:repeat(3,1fr)}.head{align-items:start;flex-direction:column}}
 @media(max-width:480px){.page{padding-top:30px}.panel-head{padding:17px}.filters{padding:12px 17px}.booking{padding:16px 17px}.booking-list .booking .status{display:none}.modal-card{padding:23px 17px}.date-grid{gap:3px}.date-cell{min-height:48px}.stats{margin-bottom:20px}.stat strong{font-size:25px}}
  .booking-block{width:100%;border:0;text-align:left}.booking-block span{float:right}.booking-block small{display:block;font:7px var(--mono);opacity:.7;margin-top:3px}
+
+.login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}.login-card{width:min(420px,100%);border:1px solid var(--border);background:var(--bg);padding:34px;box-shadow:0 20px 60px rgba(0,0,0,.08)}.login-logo{width:52px;height:52px;background:var(--dark);color:#fff;display:grid;place-items:center;font-weight:800;font-size:20px;margin-bottom:22px}.login-card h1{font-size:34px;letter-spacing:-.06em;line-height:.95}.login-card p{font-size:11px;line-height:1.7;color:var(--muted);margin:10px 0 24px}.pin-wrap{position:relative}.pin-input{width:100%;border:1px solid var(--border);background:transparent;padding:14px 45px 14px 14px;outline:none;font:16px var(--mono);letter-spacing:.18em}.pin-input:focus{border-color:var(--dark)}.pin-toggle{position:absolute;right:8px;top:7px;width:36px;height:36px;border:0;background:transparent}.login-btn{width:100%;margin-top:12px}.login-error{min-height:18px;color:var(--red);font:8px var(--mono);margin-top:10px;text-transform:uppercase}.login-screen.hidden{display:none}
 </style>
 </head>
 <body>
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">R</div>
+    <span class="eyebrow">RESO / ADMIN ACCESS</span>
+    <h1>Dashboard<br><i>Login.</i></h1>
+    <p>Masukkan PIN admin untuk mengakses dashboard booking RESO Haircut.</p>
+    <form id="loginForm" autocomplete="off">
+      <div class="pin-wrap">
+        <input id="pinInput" class="pin-input" type="password" inputmode="text" autocomplete="off" placeholder="Masukkan PIN" aria-label="PIN admin">
+        <button type="button" class="pin-toggle" id="pinToggle" aria-label="Tampilkan PIN">◉</button>
+      </div>
+      <button class="btn dark login-btn" type="submit">Masuk ke Dashboard →</button>
+      <div class="login-error" id="loginError"></div>
+    </form>
+  </div>
+</div>
 <header class="topbar">
   <div class="wrap" style="display:flex;align-items:center;justify-content:space-between;width:100%">
     <div class="brand"><div class="logo">R</div><div><strong>RESO Haircut</strong><small>ADMIN DASHBOARD · INDRAMAYU</small></div></div>
@@ -100,13 +118,22 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const API_URL="/api/reso";
+const API_URL="/api/reso";const ADMIN_PIN="reso2626";
+const AUTH_KEY="reso_admin_authenticated";
+const loginScreen=document.getElementById("loginScreen"),loginForm=document.getElementById("loginForm"),pinInput=document.getElementById("pinInput"),loginError=document.getElementById("loginError"),pinToggle=document.getElementById("pinToggle");
+function isLoggedIn(){return sessionStorage.getItem(AUTH_KEY)==="1"}
+function showDashboard(){loginScreen.classList.add("hidden");document.body.style.overflow=""}
+function showLogin(){loginScreen.classList.remove("hidden");document.body.style.overflow="hidden";setTimeout(()=>pinInput.focus(),50)}
+if(isLoggedIn())showDashboard();else showLogin();
+loginForm.addEventListener("submit",e=>{e.preventDefault();if(pinInput.value===ADMIN_PIN){sessionStorage.setItem(AUTH_KEY,"1");loginError.textContent="";pinInput.value="";showDashboard();load();}else{loginError.textContent="PIN salah. Silakan coba lagi.";pinInput.value="";pinInput.focus()}});
+pinToggle.addEventListener("click",()=>{const visible=pinInput.type==="text";pinInput.type=visible?"password":"text";pinToggle.textContent=visible?"◉":"◌"});
+
 async function api(action,payload={}){const res=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8","Accept":"application/json, text/plain, */*"},cache:"no-store",body:JSON.stringify({action,...payload})});const text=await res.text();let data;try{data=JSON.parse(text)}catch(e){throw new Error("Server mengirim response bukan JSON (HTTP "+res.status+")")};if(!res.ok||data&&data.ok===false)throw new Error(data?.error||"Permintaan gagal");let result=data?.data!==undefined?data.data:data;return result;}
 const G=null, list=document.getElementById("bookingList"),search=document.getElementById("search"),status=document.getElementById("statusFilter"),barber=document.getElementById("barberFilter"),mn=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"],dn=["Min","Sen","Sel","Rab","Kam","Jum","Sab"],today=new Date();
 today.setHours(0,0,0,0);let bookings=[],current=null,selDate=null,selTime=null,view=new Date(today.getFullYear(),today.getMonth(),1);
 const k=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`,dt=s=>{let d=new Date(s+"T00:00:00");return`${dn[d.getDay()]}, ${d.getDate()} ${mn[d.getMonth()]} ${d.getFullYear()}`},esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 async function load(){try{bookings=await api("getBookings")||[];render()}catch(e){toast(e.message||"Gagal memuat booking")}}
-function render(){let q=search.value.toLowerCase(),sf=status.value,bf=barber.value,r=bookings.filter(b=>(!q||`${b.name} ${b.wa} ${b.service} ${b.id}`.toLowerCase().includes(q))&&(sf==="all"||b.status.toLowerCase()===sf)&&(bf==="all"||b.barber===bf));list.innerHTML=r.length?r.map(b=>`<article class="booking"><div class="datebox"><strong>${b.time}</strong><small>${dt(b.date)}</small></div><div class="client"><strong>${esc(b.name)}</strong><small>${esc(b.service)} · ${esc(b.wa)}</small></div><div class="barber"><strong>${esc(b.barber)}</strong><small>${esc(b.note)}</small><span class="status ${b.status.toLowerCase()}">${b.status}</span></div><div class="row-actions"><button class="iconbtn" title="Ingatkan customer via WhatsApp" onclick="remindCustomer('${b.id}')">🔔</button><button class="iconbtn" title="Reschedule" onclick="openRes('${b.id}')">↻</button><button class="iconbtn" title="Selesaikan booking" onclick="done('${b.id}')">✓</button><button class="iconbtn cancel-btn" title="Batalkan / aktifkan kembali" onclick="cancel('${b.id}')">${b.status==="Cancelled"?"↺":"×"}</button></div></article>`).join(""):`<div class="empty">Tidak ada booking.</div>`;let a=bookings.filter(b=>!["Cancelled","Completed"].includes(b.status));document.getElementById("bookingCount").textContent=r.length+" DATA";document.getElementById("statToday").textContent=a.filter(b=>b.date===k(today)).length;document.getElementById("statUpcoming").textContent=a.filter(b=>b.date>k(today)).length;document.getElementById("statRevenue").textContent="Rp"+a.reduce((s,b)=>s+Number(b.price||0),0).toLocaleString("id-ID");document.getElementById("statRescheduled").textContent=bookings.filter(b=>b.status==="Rescheduled").length;document.getElementById("todayLabel").textContent=today.getDate()+" "+mn[today.getMonth()]}
+function render(){let q=search.value.toLowerCase(),sf=status.value,bf=barber.value,r=bookings.filter(b=>(!q||`${b.name} ${b.wa} ${b.service} ${b.id}`.toLowerCase().includes(q))&&(sf==="all"||b.status.toLowerCase()===sf)&&(bf==="all"||b.barber===bf));list.innerHTML=r.length?r.map(b=>`<article class="booking"><div class="datebox"><strong>${b.time}</strong><small>${dt(b.date)}</small></div><div class="client"><strong>${esc(b.name)}</strong><small>${esc(b.service)} · ${esc(b.wa)}</small></div><div class="barber"><strong>${esc(b.barber)}</strong><small>${esc(b.note)}</small><span class="status ${b.status.toLowerCase()}">${b.status}</span></div><div class="row-actions"><button class="iconbtn" title="Kirim bukti pesanan via WhatsApp" onclick="sendOrderProof('${b.id}')">📤</button><button class="iconbtn" title="Ingatkan customer via WhatsApp" onclick="remindCustomer('${b.id}')">🔔</button><button class="iconbtn" title="Reschedule" onclick="openRes('${b.id}')">↻</button><button class="iconbtn" title="Selesaikan booking" onclick="done('${b.id}')">✓</button><button class="iconbtn cancel-btn" title="Hapus pesanan" onclick="cancel('${b.id}')">${b.status==="Cancelled"?"↺":"×"}</button></div></article>`).join(""):`<div class="empty">Tidak ada booking.</div>`;let a=bookings.filter(b=>!["Cancelled","Completed"].includes(b.status));document.getElementById("bookingCount").textContent=r.length+" DATA";document.getElementById("statToday").textContent=a.filter(b=>b.date===k(today)).length;document.getElementById("statUpcoming").textContent=a.filter(b=>b.date>k(today)).length;document.getElementById("statRevenue").textContent="Rp"+a.reduce((s,b)=>s+Number(b.price||0),0).toLocaleString("id-ID");document.getElementById("statRescheduled").textContent=bookings.filter(b=>b.status==="Rescheduled").length;document.getElementById("todayLabel").textContent=today.getDate()+" "+mn[today.getMonth()]}
 function openRes(id){current=bookings.find(b=>b.id===id);if(!current)return;selDate=current.date;selTime=current.time;let d=new Date(selDate+"T00:00:00");view=new Date(d.getFullYear(),d.getMonth(),1);document.getElementById("resModal").classList.add("show");cal();times();sum()}
 function sum(){document.getElementById("resSummary").innerHTML=`<strong>${esc(current.name)} · ${esc(current.service)}</strong><small>${dt(current.date)} · ${current.time} · ${esc(current.barber)}</small>`}
 function cal(){let f=new Date(view.getFullYear(),view.getMonth(),1),l=new Date(view.getFullYear(),view.getMonth()+1,0),c=[];for(let i=0;i<f.getDay();i++)c.push('<button class="date-cell muted" disabled></button>');for(let i=1;i<=l.getDate();i++){let d=new Date(view.getFullYear(),view.getMonth(),i),x=k(d);c.push(`<button class="date-cell ${x===selDate?"selected":""}" onclick="pickDate('${x}')"><strong>${i}</strong><small>${dn[d.getDay()]}</small></button>`)}document.getElementById("calTitle").textContent=mn[view.getMonth()]+" "+view.getFullYear();document.getElementById("dateGrid").innerHTML=dn.map(x=>`<div class="dayhead">${x}</div>`).join("")+c.join("")}
@@ -181,13 +208,15 @@ document.getElementById("saveReschedule").onclick=async()=>{
   }catch(e){toast(e.message||"Reschedule gagal")}
 };
 async function cancel(id){
-  let b=bookings.find(x=>x.id===id);
+  const b=bookings.find(x=>x.id===id);
   if(!b)return;
-  if(b.status==="Completed")return toast("Booking selesai tidak bisa dibatalkan.");
+  if(b.status==="Completed")return toast("Booking selesai tidak bisa dihapus.");
+  if(!confirm("Hapus pesanan "+b.name+"?\n\nData booking ini akan langsung dihapus dari Google Spreadsheet dan tidak bisa dikembalikan."))return;
   try{
-    if(b.status==="Cancelled"){await api("reactivateBooking",{id});await load();return}
-    if(confirm("Batalkan booking "+b.name+"?")){await api("cancelBooking",{id,reason:"Dibatalkan melalui dashboard"});toast("Booking dibatalkan");await load()}
-  }catch(e){toast(e.message||"Gagal mengubah status")}
+    await api("deleteBooking",{id});
+    toast("Pesanan berhasil dihapus dari Spreadsheet");
+    await load();
+  }catch(e){toast(e.message||"Gagal menghapus pesanan")}
 }
 async function done(id){
   if(confirm("Tandai selesai & sudah bayar?"))try{await api("completeBookingServer",{id});toast("Booking selesai");await load()}catch(e){toast(e.message||"Gagal")}
@@ -201,6 +230,55 @@ function normalizeWA(phone){
 }
 function formatReminderDate(date){
   try{return dt(date)}catch(e){return date||"-"}
+}
+function priceNumber(v){
+  const n=String(v??"").replace(/[^0-9]/g,"");
+  return n?Number(n):0;
+}
+function formatRupiah(v){
+  return "Rp"+Number(v||0).toLocaleString("id-ID");
+}
+function sendOrderProof(id){
+  const b=bookings.find(x=>x.id===id);
+  if(!b)return toast("Data booking tidak ditemukan.");
+  if(b.status==="Cancelled")return toast("Booking sudah dibatalkan.");
+  const wa=normalizeWA(b.wa);
+  if(!wa || wa.length<10)return toast("Nomor WhatsApp customer tidak valid.");
+
+  const servicePrice=priceNumber(b.price);
+  const additionalFee=(String(b.barber||"").trim().toLowerCase()==="rezky")?5000:0;
+  const total=servicePrice+additionalFee;
+  const message=[
+    "Halo "+(b.name||"Kak")+", 👋",
+    "",
+    "Berikut bukti pesanan booking kamu di RESO Haircut.",
+    "",
+    "━━━━━━━━━━━━━━━━━━",
+    "🧾 BOOKING CONFIRMED",
+    "━━━━━━━━━━━━━━━━━━",
+    "",
+    "🆔 Booking ID: "+(b.id||"-"),
+    "📅 Tanggal: "+formatReminderDate(b.date),
+    "⏰ Jam: "+(b.time||"-"),
+    "✂️ Capster: "+(b.barber||"-"),
+    "💈 Layanan: "+(b.service||"-"),
+    "⏱️ Durasi: "+(b.duration||"-"),
+    "",
+    "💰 Harga layanan: "+formatRupiah(servicePrice),
+    additionalFee?"➕ Tambahan capster Rezky: "+formatRupiah(additionalFee):"",
+    "💵 Total: "+formatRupiah(total),
+    "",
+    "📌 Status: "+(b.status||"Confirmed"),
+    b.note?"📝 Catatan: "+b.note:"",
+    "",
+    "Mohon datang tepat waktu sesuai jadwal booking ya 🙏",
+    "",
+    "Terima kasih sudah booking di RESO Haircut! ✨"
+  ].filter(Boolean).join("\n");
+
+  const url="https://wa.me/"+wa+"?text="+encodeURIComponent(message);
+  window.open(url,"_blank","noopener,noreferrer");
+  toast("Bukti pesanan dibuka di WhatsApp.");
 }
 function remindCustomer(id){
   const b=bookings.find(x=>x.id===id);
