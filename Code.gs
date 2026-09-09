@@ -5,6 +5,8 @@ const BOOKING_HOUR_START = 10;
 const BOOKING_HOUR_END = 22;
 const SLOT_MINUTES = 30;
 const DEFAULT_BARBERS = ['Rezky', 'Iqbal'];
+const CAPSTER_SHEET = 'Capsters';
+const PROMO_SHEET = 'Promos';
 
 function doGet(e) {
   const params = (e && e.parameter) || {};
@@ -15,6 +17,15 @@ function doGet(e) {
     }
     if (api === 'getClientBookingData') {
       return jsonOutput_({ok:true, data:getClientBookingData(String(params.date || ''), String(params.barber || ''))});
+    }
+    if (api === 'getSettings') {
+      return jsonOutput_({ok:true, data:getSettings()});
+    }
+    if (api === 'getBookingMonths') {
+      return jsonOutput_({ok:true, data:getBookingMonths()});
+    }
+    if (api === 'validatePromo') {
+      return jsonOutput_({ok:true, data:validatePromo(String(params.code || ''))});
     }
     return jsonOutput_({ok:true, message:'RESO Haircut API aktif'});
   } catch (err) {
@@ -35,6 +46,30 @@ function doPost(e) {
         break;
       case 'getClientBookingData':
         result = getClientBookingData(String(p.date || ''), String(p.barber || ''));
+        break;
+      case 'getSettings':
+        result = getSettings();
+        break;
+      case 'getBookingMonths':
+        result = getBookingMonths();
+        break;
+      case 'validatePromo':
+        result = validatePromo(String(p.code || ''));
+        break;
+      case 'saveCapster':
+        result = saveCapster(p);
+        break;
+      case 'toggleCapster':
+        result = toggleCapster(p.name, p.active);
+        break;
+      case 'createPromo':
+        result = createPromo(p);
+        break;
+      case 'togglePromo':
+        result = togglePromo(p.code, p.active);
+        break;
+      case 'deletePromo':
+        result = deletePromo(p.code);
         break;
       case 'createBooking':
         result = createBooking(p);
@@ -69,13 +104,47 @@ function jsonOutput_(obj) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-function getSheet_() {
+function getSheet_(dateValue) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  let sh = ss.getSheetByName(SHEET_NAME);
-  if (!sh) sh = ss.insertSheet(SHEET_NAME);
+  const sheetName = getMonthSheetName_(dateValue);
+  let sh = ss.getSheetByName(sheetName);
+
+  // Buat tab bulan secara otomatis jika belum ada.
+  if (!sh) {
+    sh = ss.insertSheet(sheetName);
+    initializeBookingSheet_(sh);
+
+    // Jika masih ada sheet legacy "Bookings", salin booking bulan ini
+    // agar data lama tidak hilang ketika sistem pertama kali dipindahkan.
+    migrateLegacyBookingsForMonth_(ss, sh, dateValue);
+  } else {
+    initializeBookingSheet_(sh);
+  }
+  return sh;
+}
+
+function getMonthSheetName_(dateValue) {
+  let d;
+  if (dateValue instanceof Date) {
+    d = new Date(dateValue.getTime());
+  } else {
+    const s = String(dateValue || '').trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+      const parts = s.split('-').map(Number);
+      d = new Date(parts[0], parts[1] - 1, 1);
+    } else {
+      d = new Date();
+    }
+  }
+  const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  return months[d.getMonth()] + ' ' + d.getFullYear();
+}
+
+function initializeBookingSheet_(sh) {
   const headers = [
     'ID','Timestamp','Name','WA','Note','Reminder','Promo',
-    'Category','Service','Price','Duration','Barber','Date','Time','Status'
+    'Category','Service','Price','Duration','Barber','Date','Time','Status',
+    'Promo Discount','Total Price'
   ];
   if (sh.getLastRow() === 0) {
     sh.getRange(1,1,1,headers.length).setValues([headers]);
@@ -89,12 +158,60 @@ function getSheet_() {
   sh.getRange('B:B').setNumberFormat('dd/MM/yyyy HH:mm:ss');
   sh.getRange('M:M').setNumberFormat('@');
   sh.getRange('N:N').setNumberFormat('@');
-  return sh;
+}
+
+function migrateLegacyBookingsForMonth_(ss, targetSheet, dateValue) {
+  const legacy = ss.getSheetByName(SHEET_NAME);
+  if (!legacy || legacy.getName() === targetSheet.getName() || legacy.getLastRow() < 2) return;
+
+  const targetMonth = getMonthSheetName_(dateValue);
+  const rows = legacy.getRange(2, 1, legacy.getLastRow() - 1, 17).getValues();
+  const matching = rows.filter(r => getMonthSheetName_(r[12]) === targetMonth && r[0]);
+  if (!matching.length) return;
+
+  const existingIds = targetSheet.getLastRow() < 2 ? new Set() :
+    new Set(targetSheet.getRange(2,1,targetSheet.getLastRow()-1,1).getValues().flat().map(String));
+  const fresh = matching.filter(r => !existingIds.has(String(r[0])));
+  if (fresh.length) targetSheet.getRange(targetSheet.getLastRow()+1,1,fresh.length,17).setValues(fresh);
+}
+
+function getAllBookingSheets_() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  // Pastikan tab bulan berjalan selalu ada.
+  getSheet_(new Date());
+  return ss.getSheets().filter(sh => /^.+ \d{4}$/.test(sh.getName()) && sh.getName() !== CAPSTER_SHEET && sh.getName() !== PROMO_SHEET);
+}
+
+/**
+ * Jalankan fungsi ini SEKALI dari Apps Script untuk membuat trigger bulanan.
+ * Setiap tanggal 1 sekitar pukul 00:00-01:00, tab bulan baru dibuat otomatis.
+ * Sistem juga tetap membuat tab secara lazy saat ada booking/API, jadi aman jika trigger terlambat.
+ */
+function setupMonthlySheetTrigger() {
+  const triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(t => {
+    if (t.getHandlerFunction() === 'createCurrentMonthSheet') {
+      ScriptApp.deleteTrigger(t);
+    }
+  });
+  ScriptApp.newTrigger('createCurrentMonthSheet')
+    .timeBased()
+    .onMonthDay(1)
+    .atHour(0)
+    .create();
+  createCurrentMonthSheet();
+  return 'Trigger bulanan aktif.';
+}
+
+function createCurrentMonthSheet() {
+  const sh = getSheet_(new Date());
+  sh.autoResizeColumns(1, 17);
+  return 'Tab bulan aktif: ' + sh.getName();
 }
 
 function setupSheet() {
   const sh = getSheet_();
-  sh.autoResizeColumns(1, 15);
+  sh.autoResizeColumns(1, 17);
   return 'Sheet siap: ' + sh.getName();
 }
 
@@ -105,11 +222,14 @@ function createBooking(p) {
     if (!p || !p.name || !p.wa || !p.service || !p.barber || !p.date || !p.time) {
       throw new Error('Data booking belum lengkap.');
     }
+    const settings = getSettings();
+    const cap = settings.capsters.find(x => x.name === String(p.barber).trim() && x.active);
+    if (!cap) throw new Error('Capster tersebut sedang tidak tersedia. Silakan pilih capster lain.');
     const wa = normalizeWa_(p.wa);
     if (!/^08\d{8,12}$/.test(wa)) throw new Error('Nomor WhatsApp tidak valid.');
     if (!isValidTime_(p.time)) throw new Error('Jam booking tidak valid.');
 
-    const sh = getSheet_();
+    const sh = getSheet_(p.date);
     const values = sh.getDataRange().getValues();
     for (let i = 1; i < values.length; i++) {
       const row = values[i];
@@ -126,33 +246,56 @@ function createBooking(p) {
     const id = 'RS-' + Utilities.formatDate(new Date(), TZ, 'yyyyMMdd-HHmmss') +
       '-' + Math.floor(100 + Math.random() * 900);
     const price = parsePrice_(p.price);
+    const additionalFee = Number(p.additionalFee || 0);
+    const baseTotal = price + additionalFee;
+    const promoResult = validatePromo(String(p.promo || ''));
+    const discount = promoResult.valid ? calculateDiscount_(promoResult, baseTotal) : 0;
+    const totalPrice = Math.max(0, baseTotal - discount);
+    if (promoResult.valid) consumePromo_(promoResult.code);
     sh.appendRow([
       id, new Date(), String(p.name).trim(), wa, String(p.note || '').trim(),
-      p.reminder ? 'Ya' : 'Tidak', String(p.promo || '').trim(),
+      p.reminder ? 'Ya' : 'Tidak', String(p.promo || '').trim().toUpperCase(),
       String(p.category || ''), String(p.service).trim(), price,
       String(p.duration || '').trim(), String(p.barber).trim(),
-      p.date, p.time, 'Confirmed'
+      p.date, p.time, 'Confirmed', discount, totalPrice
     ]);
-    return {ok:true, id:id};
+    return {ok:true, id:id, promoDiscount:discount, totalPrice:totalPrice};
   } finally {
     lock.releaseLock();
   }
 }
 
+function getBookingMonths() {
+  const sheets = getAllBookingSheets_();
+  const months = sheets.map(sh => sh.getName());
+  return months.sort((a,b) => {
+    const pa = /^(.+) (\d{4})$/.exec(a), pb = /^(.+) (\d{4})$/.exec(b);
+    const idx = {'Januari':0,'Februari':1,'Maret':2,'April':3,'Mei':4,'Juni':5,'Juli':6,'Agustus':7,'September':8,'Oktober':9,'November':10,'Desember':11};
+    const da = pa ? new Date(Number(pa[2]), idx[pa[1]] ?? 0, 1).getTime() : 0;
+    const db = pb ? new Date(Number(pb[2]), idx[pb[1]] ?? 0, 1).getTime() : 0;
+    return db - da;
+  });
+}
+
 function getBookings() {
-  const sh = getSheet_();
-  const last = sh.getLastRow();
-  if (last < 2) return [];
-  const rows = sh.getRange(2,1,last-1,15).getValues();
-  return rows.filter(r => r[0]).map(rowToObject_);
+  const sheets = getAllBookingSheets_();
+  const all = [];
+  sheets.forEach(sh => {
+    const last = sh.getLastRow();
+    if (last >= 2) {
+      const rows = sh.getRange(2,1,last-1,17).getValues();
+      rows.filter(r => r[0]).forEach(r => all.push(rowToObject_(r)));
+    }
+  });
+  return all.sort((a,b) => String(b.date+' '+b.time).localeCompare(String(a.date+' '+a.time)));
 }
 
 function getClientBookingData(date, barber) {
   const booked = {};
-  const sh = getSheet_();
+  const sh = getSheet_(date);
   const last = sh.getLastRow();
   if (last >= 2) {
-    const rows = sh.getRange(2,1,last-1,15).getValues();
+    const rows = sh.getRange(2,1,last-1,17).getValues();
     rows.forEach(r => {
       const d = normalizeDate_(r[12]);
       const t = String(r[13] || '');
@@ -173,31 +316,42 @@ function getClientBookingData(date, barber) {
   return {times:times};
 }
 
-function updateBooking(p) {
-  if (!p || !p.id) throw new Error('ID booking tidak ditemukan.');
-  const sh = getSheet_();
-  const values = sh.getDataRange().getValues();
-  let targetRow = -1;
-  let target = null;
-  for (let i=1;i<values.length;i++) {
-    if (String(values[i][0]) === String(p.id)) {
-      targetRow = i + 1;
-      target = values[i];
-      break;
+function findBookingLocation_(id) {
+  const sheets = getAllBookingSheets_();
+  for (const sh of sheets) {
+    const last = sh.getLastRow();
+    if (last < 2) continue;
+    const ids = sh.getRange(2,1,last-1,1).getValues();
+    for (let i=0;i<ids.length;i++) {
+      if (String(ids[i][0]) === String(id)) return {sh:sh,row:i+2};
     }
   }
-  if (targetRow < 0) throw new Error('Booking tidak ditemukan.');
+  return null;
+}
+
+function updateBooking(p) {
+  if (!p || !p.id) throw new Error('ID booking tidak ditemukan.');
+  const loc = findBookingLocation_(p.id);
+  if (!loc) throw new Error('Booking tidak ditemukan.');
+  const sh = loc.sh, targetRow = loc.row;
+  const target = sh.getRange(targetRow,1,1,17).getValues()[0];
   if (p.date && p.time) {
-    const conflict = findConflict_(sh, p.date, p.time, String(target[11]), String(p.id));
+    const conflict = findConflict_(getSheet_(p.date), p.date, p.time, String(target[11]), String(p.id));
     if (conflict) throw new Error('Jam tersebut sudah terisi untuk capster ini.');
   }
   if (p.date) sh.getRange(targetRow,13).setValue(p.date);
   if (p.time) sh.getRange(targetRow,14).setValue(p.time);
   if (p.status) sh.getRange(targetRow,15).setValue(p.status);
   if (p.note !== undefined) sh.getRange(targetRow,5).setValue(String(p.note));
+
+  // Jika reschedule pindah bulan, pindahkan baris ke tab bulan tujuan.
+  if (p.date && getMonthSheetName_(p.date) !== sh.getName()) {
+    const updated = sh.getRange(targetRow,1,1,17).getValues()[0];
+    getSheet_(p.date).appendRow(updated);
+    sh.deleteRow(targetRow);
+  }
   return {ok:true};
 }
-
 function cancelBooking(id, reason) {
   // Cancel sekarang benar-benar menghapus booking dari Spreadsheet.
   // Data tidak hanya diubah statusnya menjadi Cancelled.
@@ -205,16 +359,10 @@ function cancelBooking(id, reason) {
 }
 
 function deleteBooking(id) {
-  const sh = getSheet_();
-  const values = sh.getDataRange().getValues();
-  for (let i=1; i<values.length; i++) {
-    if (String(values[i][0]) === String(id)) {
-      const row = i + 1;
-      sh.deleteRow(row);
-      return {ok:true, deleted:true, id:String(id)};
-    }
-  }
-  throw new Error('Booking tidak ditemukan.');
+  const loc = findBookingLocation_(id);
+  if (!loc) throw new Error('Booking tidak ditemukan.');
+  loc.sh.deleteRow(loc.row);
+  return {ok:true, deleted:true, id:String(id)};
 }
 
 function reactivateBooking(id) {
@@ -228,23 +376,16 @@ function completeBookingServer(id) {
 }
 
 function setStatus_(id, status, note) {
-  const sh = getSheet_();
-  const values = sh.getDataRange().getValues();
-  for (let i=1;i<values.length;i++) {
-    if (String(values[i][0]) === String(id)) {
-      const row = i+1;
-      sh.getRange(row,15).setValue(status);
-      if (note) sh.getRange(row,5).setValue(note);
-      return;
-    }
-  }
-  throw new Error('Booking tidak ditemukan.');
+  const loc = findBookingLocation_(id);
+  if (!loc) throw new Error('Booking tidak ditemukan.');
+  loc.sh.getRange(loc.row,15).setValue(status);
+  if (note) loc.sh.getRange(loc.row,5).setValue(note);
 }
 
 function findConflict_(sh, date, time, barber, exceptId) {
   const last = sh.getLastRow();
   if (last < 2) return false;
-  const rows = sh.getRange(2,1,last-1,15).getValues();
+  const rows = sh.getRange(2,1,last-1,17).getValues();
   return rows.some(r =>
     String(r[0]) !== String(exceptId) &&
     normalizeDate_(r[12]) === date &&
@@ -270,8 +411,152 @@ function rowToObject_(r) {
     barber:String(r[11] || ''),
     date:normalizeDate_(r[12]),
     time:String(r[13] || ''),
-    status:String(r[14] || 'Confirmed')
+    status:String(r[14] || 'Confirmed'),
+    promoDiscount:Number(r[15] || 0),
+    totalPrice:Number(r[16] || 0)
   };
+}
+
+
+function getCapsterSheet_() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sh = ss.getSheetByName(CAPSTER_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(CAPSTER_SHEET);
+    sh.getRange(1,1,1,3).setValues([['Name','Active','Updated At']]);
+    DEFAULT_BARBERS.forEach((name,i) => sh.getRange(i+2,1,1,3).setValues([[name,true,new Date()]]));
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+function getPromoSheet_() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sh = ss.getSheetByName(PROMO_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(PROMO_SHEET);
+    sh.getRange(1,1,1,8).setValues([['Code','Discount Type','Discount Value','Max Uses','Used','Active','Created At','Updated At']]);
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+function getSettings() {
+  const csh = getCapsterSheet_();
+  const plast = csh.getLastRow();
+  const capsters = plast < 2 ? [] : csh.getRange(2,1,plast-1,3).getValues()
+    .filter(r => String(r[0] || '').trim())
+    .map(r => ({name:String(r[0]).trim(), active:r[1] !== false && String(r[1]).toLowerCase() !== 'false'}));
+
+  const psh = getPromoSheet_();
+  const last = psh.getLastRow();
+  const promos = last < 2 ? [] : psh.getRange(2,1,last-1,8).getValues()
+    .filter(r => String(r[0] || '').trim())
+    .map(r => ({
+      code:String(r[0]).trim().toUpperCase(),
+      discountType:String(r[1] || 'percent'),
+      discountValue:Number(r[2] || 0),
+      maxUses:Number(r[3] || 0),
+      used:Number(r[4] || 0),
+      active:r[5] !== false && String(r[5]).toLowerCase() !== 'false',
+      createdAt:r[6] instanceof Date ? Utilities.formatDate(r[6], TZ, 'yyyy-MM-dd HH:mm:ss') : String(r[6] || ''),
+      remaining:Math.max(0,Number(r[3] || 0)-Number(r[4] || 0))
+    }));
+  return {capsters:capsters, promos:promos};
+}
+
+function saveCapster(p) {
+  const name = String(p.name || '').trim();
+  if (!name) throw new Error('Nama capster wajib diisi.');
+  const sh = getCapsterSheet_(), last = sh.getLastRow();
+  for (let i=2;i<=last;i++) if (String(sh.getRange(i,1).getValue()).trim().toLowerCase() === name.toLowerCase()) {
+    sh.getRange(i,2,1,2).setValues([[p.active !== false, new Date()]]);
+    return getSettings();
+  }
+  sh.appendRow([name,p.active !== false,new Date()]);
+  return getSettings();
+}
+
+function toggleCapster(name, active) {
+  const sh=getCapsterSheet_(), last=sh.getLastRow();
+  for(let i=2;i<=last;i++) if(String(sh.getRange(i,1).getValue()).trim()===String(name).trim()){
+    sh.getRange(i,2,1,2).setValues([[active===true || String(active)==='true',new Date()]]);
+    return getSettings();
+  }
+  throw new Error('Capster tidak ditemukan.');
+}
+
+function createPromo(p) {
+  const code = String(p.code || '').trim().toUpperCase().replace(/[^A-Z0-9_-]/g,'');
+  if (!code || code.length < 3) throw new Error('Kode promo minimal 3 karakter.');
+  const type = p.discountType === 'fixed' ? 'fixed' : 'percent';
+  const value = Number(p.discountValue || 0);
+  const maxUses = Math.floor(Number(p.maxUses || 0));
+  if (value <= 0) throw new Error('Potongan harus lebih dari 0.');
+  if (type === 'percent' && value > 100) throw new Error('Potongan persen maksimal 100%.');
+  if (maxUses < 1) throw new Error('Jumlah slot promo minimal 1.');
+  const sh=getPromoSheet_(), last=sh.getLastRow();
+  for(let i=2;i<=last;i++) if(String(sh.getRange(i,1).getValue()).trim().toUpperCase()===code) throw new Error('Kode promo sudah ada.');
+  sh.appendRow([code,type,value,maxUses,0,true,new Date(),new Date()]);
+  return getSettings();
+}
+
+function togglePromo(code, active) {
+  const sh=getPromoSheet_(), last=sh.getLastRow();
+  for(let i=2;i<=last;i++) if(String(sh.getRange(i,1).getValue()).trim().toUpperCase()===String(code).trim().toUpperCase()){
+    sh.getRange(i,6,1,2).setValues([[active===true || String(active)==='true',new Date()]]);
+    return getSettings();
+  }
+  throw new Error('Kode promo tidak ditemukan.');
+}
+
+function deletePromo(code) {
+  const sh=getPromoSheet_(), last=sh.getLastRow();
+  for(let i=2;i<=last;i++) if(String(sh.getRange(i,1).getValue()).trim().toUpperCase()===String(code).trim().toUpperCase()){
+    sh.deleteRow(i);
+    return getSettings();
+  }
+  throw new Error('Kode promo tidak ditemukan.');
+}
+
+function validatePromo(code) {
+  const c=String(code || '').trim().toUpperCase();
+  if (!c) return {valid:false, code:'', message:'Kode promo kosong.'};
+  const sh=getPromoSheet_(), last=sh.getLastRow();
+  for(let i=2;i<=last;i++){
+    const r=sh.getRange(i,1,1,8).getValues()[0];
+    const rowCode=String(r[0] || '').trim().toUpperCase();
+    if(rowCode===c){
+      const active=r[5] !== false && String(r[5]).toLowerCase() !== 'false';
+      const maxUses=Number(r[3] || 0), used=Number(r[4] || 0);
+      if(!active) return {valid:false,code:c,message:'Kode promo sedang tidak aktif.'};
+      if(used>=maxUses) return {valid:false,code:c,message:'Slot kode promo sudah habis.'};
+      return {valid:true,code:c,discountType:String(r[1] || 'percent'),discountValue:Number(r[2] || 0),maxUses:maxUses,used:used,remaining:maxUses-used,message:'Kode promo valid.'};
+    }
+  }
+  return {valid:false,code:c,message:'Kode promo tidak ditemukan.'};
+}
+
+function calculateDiscount_(promo, total) {
+  if (!promo || !promo.valid) return 0;
+  if (promo.discountType === 'fixed') return Math.min(total, Math.max(0, Number(promo.discountValue || 0)));
+  return Math.min(total, Math.round(total * Math.max(0,Math.min(100,Number(promo.discountValue || 0))) / 100));
+}
+
+function consumePromo_(code) {
+    const sh=getPromoSheet_(), last=sh.getLastRow(), c=String(code||'').trim().toUpperCase();
+    for(let i=2;i<=last;i++){
+      const r=sh.getRange(i,1,1,8).getValues()[0];
+      if(String(r[0]||'').trim().toUpperCase()===c){
+        const active=r[5] !== false && String(r[5]).toLowerCase() !== 'false';
+        const max=Number(r[3]||0), used=Number(r[4]||0);
+        if(!active || used>=max) throw new Error('Slot kode promo sudah habis atau tidak aktif.');
+        sh.getRange(i,5).setValue(used+1);
+        sh.getRange(i,8).setValue(new Date());
+        return;
+      }
+    }
+    throw new Error('Kode promo tidak ditemukan.');
 }
 
 function normalizeWa_(v) {
