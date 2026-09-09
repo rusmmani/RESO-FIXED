@@ -36,6 +36,9 @@
  .booking-block{width:100%;border:0;text-align:left}.booking-block span{float:right}.booking-block small{display:block;font:7px var(--mono);opacity:.7;margin-top:3px}
 
 .login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}.login-card{width:min(420px,100%);border:1px solid var(--border);background:var(--bg);padding:34px;box-shadow:0 20px 60px rgba(0,0,0,.08)}.login-logo{width:52px;height:52px;background:var(--dark);color:#fff;display:grid;place-items:center;font-weight:800;font-size:20px;margin-bottom:22px}.login-card h1{font-size:34px;letter-spacing:-.06em;line-height:.95}.login-card p{font-size:11px;line-height:1.7;color:var(--muted);margin:10px 0 24px}.pin-wrap{position:relative}.pin-input{width:100%;border:1px solid var(--border);background:transparent;padding:14px 45px 14px 14px;outline:none;font:16px var(--mono);letter-spacing:.18em}.pin-input:focus{border-color:var(--dark)}.pin-toggle{position:absolute;right:8px;top:7px;width:36px;height:36px;border:0;background:transparent}.login-btn{width:100%;margin-top:12px}.login-error{min-height:18px;color:var(--red);font:8px var(--mono);margin-top:10px;text-transform:uppercase}.login-screen.hidden{display:none}
+
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:25px;margin-top:25px}.setting-list{padding:6px 0}.setting-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 22px;border-bottom:1px solid var(--border)}.setting-main{min-width:0}.setting-main strong{display:block;font-size:12px}.setting-main small{display:block;font:8px var(--mono);color:var(--muted);margin-top:4px}.switch{position:relative;width:42px;height:24px;flex:0 0 42px}.switch input{opacity:0;width:0;height:0}.switch i{position:absolute;inset:0;border:1px solid var(--border);background:var(--surface);border-radius:20px;transition:.2s}.switch i:after{content:"";position:absolute;width:18px;height:18px;left:2px;top:2px;background:#fff;border:1px solid var(--border);border-radius:50%;transition:.2s}.switch input:checked+i{background:var(--dark)}.switch input:checked+i:after{transform:translateX(18px)}.setting-form{padding:18px 22px;display:grid;gap:10px}.setting-form input,.setting-form select{width:100%;border:1px solid var(--border);background:transparent;padding:11px;font-size:10px;outline:none}.setting-form .form-grid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px}.promo-meta{font:8px var(--mono);color:var(--muted);margin-top:4px}.badge-on,.badge-off{font:8px var(--mono);padding:4px 6px;border:1px solid var(--border)}.badge-on{background:var(--dark);color:#fff}.badge-off{opacity:.55}.promo-code{font-family:var(--mono);letter-spacing:.08em}.setting-empty{padding:22px;color:var(--muted);font:9px var(--mono)}
+@media(max-width:800px){.settings-grid{grid-template-columns:1fr}.setting-form .form-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -81,7 +84,7 @@
       <div class="filters">
         <input id="search" placeholder="Cari nama, WhatsApp, layanan...">
         <select id="statusFilter"><option value="all">Semua status</option><option value="confirmed">Confirmed</option><option value="rescheduled">Rescheduled</option><option value="cancelled">Cancelled</option><option value="completed">Completed</option></select>
-        <select id="barberFilter"><option value="all">Semua capster</option><option>Rezky</option><option>Iqbal</option></select>
+        <select id="barberFilter"><option value="all">Semua capster</option></select>
       </div>
       <div class="booking-list" id="bookingList"></div>
     </section>
@@ -101,6 +104,28 @@
       </section>
     </aside>
   </div>
+
+<section class="settings-grid">
+  <section class="panel">
+    <div class="panel-head"><h2>Capster</h2><small>STATUS BOOKING</small></div>
+    <div class="setting-form">
+      <div class="form-grid" style="grid-template-columns:1fr auto"><input id="newCapsterName" placeholder="Nama capster baru"><button class="btn dark" id="addCapster">+ Tambah</button></div>
+    </div>
+    <div class="setting-list" id="capsterSettingsList"></div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2>Kode Promo</h2><small>DISKON & SLOT</small></div>
+    <div class="setting-form">
+      <div class="form-grid">
+        <input id="promoNewCode" placeholder="Kode, contoh: RESO10">
+        <select id="promoDiscountType"><option value="percent">Potongan %</option><option value="fixed">Potongan Rp</option></select>
+        <input id="promoDiscountValue" type="number" min="1" placeholder="Potongan">
+      </div>
+      <div class="form-grid" style="grid-template-columns:1fr auto"><input id="promoMaxUses" type="number" min="1" placeholder="Jumlah slot / maksimal pemakaian"><button class="btn dark" id="createPromo">+ Buat Promo</button></div>
+    </div>
+    <div class="setting-list" id="promoSettingsList"></div>
+  </section>
+</section>
 </main>
 
 <div class="modal" id="resModal">
@@ -129,11 +154,67 @@ loginForm.addEventListener("submit",e=>{e.preventDefault();if(pinInput.value===A
 pinToggle.addEventListener("click",()=>{const visible=pinInput.type==="text";pinInput.type=visible?"password":"text";pinToggle.textContent=visible?"◉":"◌"});
 
 async function api(action,payload={}){const res=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8","Accept":"application/json, text/plain, */*"},cache:"no-store",body:JSON.stringify({action,...payload})});const text=await res.text();let data;try{data=JSON.parse(text)}catch(e){throw new Error("Server mengirim response bukan JSON (HTTP "+res.status+")")};if(!res.ok||data&&data.ok===false)throw new Error(data?.error||"Permintaan gagal");let result=data?.data!==undefined?data.data:data;return result;}
-const G=null, list=document.getElementById("bookingList"),search=document.getElementById("search"),status=document.getElementById("statusFilter"),barber=document.getElementById("barberFilter"),mn=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"],dn=["Min","Sen","Sel","Rab","Kam","Jum","Sab"],today=new Date();
-today.setHours(0,0,0,0);let bookings=[],current=null,selDate=null,selTime=null,view=new Date(today.getFullYear(),today.getMonth(),1);
+let settings={capsters:[],promos:[]};
+const G=null, monthFilter=document.getElementById("monthFilter"), list=document.getElementById("bookingList"),search=document.getElementById("search"),status=document.getElementById("statusFilter"),barber=document.getElementById("barberFilter"),mn=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"],dn=["Min","Sen","Sel","Rab","Kam","Jum","Sab"],today=new Date();
+today.setHours(0,0,0,0);let bookings=[],bookingMonths=[],selectedMonth="",current=null,selDate=null,selTime=null,view=new Date(today.getFullYear(),today.getMonth(),1);
 const k=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`,dt=s=>{let d=new Date(s+"T00:00:00");return`${dn[d.getDay()]}, ${d.getDate()} ${mn[d.getMonth()]} ${d.getFullYear()}`},esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
-async function load(){try{bookings=await api("getBookings")||[];render()}catch(e){toast(e.message||"Gagal memuat booking")}}
-function render(){let q=search.value.toLowerCase(),sf=status.value,bf=barber.value,r=bookings.filter(b=>(!q||`${b.name} ${b.wa} ${b.service} ${b.id}`.toLowerCase().includes(q))&&(sf==="all"||b.status.toLowerCase()===sf)&&(bf==="all"||b.barber===bf));list.innerHTML=r.length?r.map(b=>`<article class="booking"><div class="datebox"><strong>${b.time}</strong><small>${dt(b.date)}</small></div><div class="client"><strong>${esc(b.name)}</strong><small>${esc(b.service)} · ${esc(b.wa)}</small></div><div class="barber"><strong>${esc(b.barber)}</strong><small>${esc(b.note)}</small><span class="status ${b.status.toLowerCase()}">${b.status}</span></div><div class="row-actions"><button class="iconbtn" title="Kirim bukti pesanan via WhatsApp" onclick="sendOrderProof('${b.id}')">📤</button><button class="iconbtn" title="Ingatkan customer via WhatsApp" onclick="remindCustomer('${b.id}')">🔔</button><button class="iconbtn" title="Reschedule" onclick="openRes('${b.id}')">↻</button><button class="iconbtn" title="Selesaikan booking" onclick="done('${b.id}')">✓</button><button class="iconbtn cancel-btn" title="Hapus pesanan" onclick="cancel('${b.id}')">${b.status==="Cancelled"?"↺":"×"}</button></div></article>`).join(""):`<div class="empty">Tidak ada booking.</div>`;let a=bookings.filter(b=>!["Cancelled","Completed"].includes(b.status));document.getElementById("bookingCount").textContent=r.length+" DATA";document.getElementById("statToday").textContent=a.filter(b=>b.date===k(today)).length;document.getElementById("statUpcoming").textContent=a.filter(b=>b.date>k(today)).length;document.getElementById("statRevenue").textContent="Rp"+a.reduce((s,b)=>s+Number(b.price||0),0).toLocaleString("id-ID");document.getElementById("statRescheduled").textContent=bookings.filter(b=>b.status==="Rescheduled").length;document.getElementById("todayLabel").textContent=today.getDate()+" "+mn[today.getMonth()]}
+async function load(){
+  try{
+    const [b,s,m]=await Promise.all([api("getBookings"),api("getSettings"),api("getBookingMonths")]);
+    bookings=b||[]; settings=s||{capsters:[],promos:[]}; bookingMonths=m||[];
+    if(!selectedMonth || !bookingMonths.includes(selectedMonth)) selectedMonth=bookingMonths[0]||monthNameFromDate_(today);
+    monthFilter.innerHTML=bookingMonths.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
+    if(!bookingMonths.length) monthFilter.innerHTML=`<option value="${esc(selectedMonth)}">${esc(selectedMonth)}</option>`;
+    monthFilter.value=selectedMonth;
+    renderSettings(); render();
+  }catch(e){toast(e.message||"Gagal memuat data")}
+}
+function monthNameFromDate_(d){return mn[d.getMonth()]+" "+d.getFullYear()}
+function selectedMonthKey_(){const parts=String(selectedMonth||"").split(" ");if(parts.length!==2)return "";const idx=mn.indexOf(parts[0]);return idx<0?"":String(parts[1])+"-"+String(idx+1).padStart(2,"0")}
+function monthKey_(date){return String(date||"").slice(0,7)}
+
+function renderSettings(){
+  const active=settings.capsters.filter(x=>x.active);
+  barber.innerHTML='<option value="all">Semua capster</option>'+settings.capsters.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}${c.active?'':' (OFF)'}</option>`).join("");
+  document.getElementById("capsterSettingsList").innerHTML=settings.capsters.length?settings.capsters.map(c=>`
+    <div class="setting-row"><div class="setting-main"><strong>${esc(c.name)}</strong><small>${c.active?"ON — bisa dipilih customer":"OFF — tidak muncul di booking"}</small></div>
+    <label class="switch"><input type="checkbox" ${c.active?"checked":""} onchange="toggleCapsterAdmin('${esc(c.name).replace(/'/g,"\\'")}',this.checked)"><i></i></label></div>`).join(""):'<div class="setting-empty">Belum ada capster.</div>';
+  document.getElementById("promoSettingsList").innerHTML=settings.promos.length?settings.promos.map(p=>`
+    <div class="setting-row"><div class="setting-main"><strong class="promo-code">${esc(p.code)}</strong><small>${p.discountType==="percent"?p.discountValue+"%":"Rp"+Number(p.discountValue).toLocaleString("id-ID")} · Terpakai ${p.used}/${p.maxUses} · Sisa ${p.remaining}</small></div>
+    <div style="display:flex;align-items:center;gap:7px"><span class="${p.active&&p.remaining>0?'badge-on':'badge-off'}">${p.active&&p.remaining>0?'ON':'OFF'}</span><label class="switch"><input type="checkbox" ${p.active?"checked":""} onchange="togglePromoAdmin('${esc(p.code).replace(/'/g,"\\'")}',this.checked)"><i></i></label><button class="btn" onclick="deletePromoAdmin('${esc(p.code).replace(/'/g,"\\'")}')">×</button></div></div>`).join(""):'<div class="setting-empty">Belum ada kode promo.</div>';
+}
+async function refreshSettings(){settings=await api("getSettings");renderSettings();render();}
+async function toggleCapsterAdmin(name,active){try{settings=await api("toggleCapster",{name,active});renderSettings();render();toast((active?"Capster diaktifkan: ":"Capster dimatikan: ")+name)}catch(e){toast(e.message)}}
+async function togglePromoAdmin(code,active){try{settings=await api("togglePromo",{code,active});renderSettings();toast("Status promo diperbarui")}catch(e){toast(e.message)}}
+async function deletePromoAdmin(code){if(!confirm("Hapus kode promo "+code+"?"))return;try{settings=await api("deletePromo",{code});renderSettings();toast("Kode promo dihapus")}catch(e){toast(e.message)}}
+document.getElementById("addCapster").onclick=async()=>{
+  const el=document.getElementById("newCapsterName"),name=el.value.trim(); if(!name)return toast("Isi nama capster.");
+  try{settings=await api("saveCapster",{name,active:true});el.value="";renderSettings();render();toast("Capster ditambahkan")}catch(e){toast(e.message)}
+};
+document.getElementById("createPromo").onclick=async()=>{
+  const code=document.getElementById("promoNewCode").value.trim().toUpperCase();
+  const discountType=document.getElementById("promoDiscountType").value;
+  const discountValue=Number(document.getElementById("promoDiscountValue").value||0);
+  const maxUses=Number(document.getElementById("promoMaxUses").value||0);
+  if(!code||!discountValue||!maxUses)return toast("Lengkapi kode, potongan, dan jumlah slot.");
+  try{settings=await api("createPromo",{code,discountType,discountValue,maxUses});document.getElementById("promoNewCode").value="";document.getElementById("promoDiscountValue").value="";document.getElementById("promoMaxUses").value="";renderSettings();toast("Kode promo berhasil dibuat")}catch(e){toast(e.message)}
+};
+
+function render(){
+  const q=search.value.toLowerCase(),sf=status.value,bf=barber.value,mk=selectedMonthKey_();
+  const monthBookings=bookings.filter(b=>monthKey_(b.date)===mk);
+  const r=monthBookings.filter(b=>(!q||`${b.name} ${b.wa} ${b.service} ${b.id}`.toLowerCase().includes(q))&&(sf==="all"||b.status.toLowerCase()===sf)&&(bf==="all"||b.barber===bf));
+  list.innerHTML=r.length?r.map(b=>`<article class="booking"><div class="datebox"><strong>${b.time}</strong><small>${dt(b.date)}</small></div><div class="client"><strong>${esc(b.name)}</strong><small>${esc(b.service)} · ${esc(b.wa)}</small></div><div class="barber"><strong>${esc(b.barber)}</strong><small>${esc(b.note)}</small><span class="status ${b.status.toLowerCase()}">${b.status}</span></div><div class="row-actions"><button class="iconbtn" title="Kirim bukti pesanan via WhatsApp" onclick="sendOrderProof('${b.id}')">📤</button><button class="iconbtn" title="Ingatkan customer via WhatsApp" onclick="remindCustomer('${b.id}')">🔔</button><button class="iconbtn" title="Reschedule" onclick="openRes('${b.id}')">↻</button><button class="iconbtn" title="Selesaikan booking" onclick="done('${b.id}')">✓</button><button class="iconbtn cancel-btn" title="Hapus pesanan" onclick="cancel('${b.id}')">×</button></div></article>`).join(""):`<div class="empty">Tidak ada booking untuk ${esc(selectedMonth)}.</div>`;
+  const active=monthBookings.filter(b=>b.status!=="Cancelled");
+  const revenue=active.reduce((sum,b)=>sum+(Number(b.totalPrice)>=0?Number(b.totalPrice):Number(b.price||0)),0);
+  document.getElementById("bookingCount").textContent=r.length+" DATA · "+selectedMonth.toUpperCase();
+  document.getElementById("statToday").textContent=active.filter(b=>b.date===k(today)).length;
+  document.getElementById("statUpcoming").textContent=active.filter(b=>b.date>k(today)&&b.status!=="Completed").length;
+  document.getElementById("statRevenue").textContent="Rp"+revenue.toLocaleString("id-ID");
+  document.getElementById("statRescheduled").textContent=monthBookings.filter(b=>b.status==="Rescheduled").length;
+  document.getElementById("todayLabel").textContent=selectedMonth;
+  document.querySelector('.panel-head h2').textContent="Booking — "+selectedMonth;
+}
 function openRes(id){current=bookings.find(b=>b.id===id);if(!current)return;selDate=current.date;selTime=current.time;let d=new Date(selDate+"T00:00:00");view=new Date(d.getFullYear(),d.getMonth(),1);document.getElementById("resModal").classList.add("show");cal();times();sum()}
 function sum(){document.getElementById("resSummary").innerHTML=`<strong>${esc(current.name)} · ${esc(current.service)}</strong><small>${dt(current.date)} · ${current.time} · ${esc(current.barber)}</small>`}
 function cal(){let f=new Date(view.getFullYear(),view.getMonth(),1),l=new Date(view.getFullYear(),view.getMonth()+1,0),c=[];for(let i=0;i<f.getDay();i++)c.push('<button class="date-cell muted" disabled></button>');for(let i=1;i<=l.getDate();i++){let d=new Date(view.getFullYear(),view.getMonth(),i),x=k(d);c.push(`<button class="date-cell ${x===selDate?"selected":""}" onclick="pickDate('${x}')"><strong>${i}</strong><small>${dn[d.getDay()]}</small></button>`)}document.getElementById("calTitle").textContent=mn[view.getMonth()]+" "+view.getFullYear();document.getElementById("dateGrid").innerHTML=dn.map(x=>`<div class="dayhead">${x}</div>`).join("")+c.join("")}
@@ -247,7 +328,8 @@ function sendOrderProof(id){
 
   const servicePrice=priceNumber(b.price);
   const additionalFee=(String(b.barber||"").trim().toLowerCase()==="rezky")?5000:0;
-  const total=servicePrice+additionalFee;
+  const total=(b.totalPrice!==undefined&&Number(b.totalPrice)>=0)?Number(b.totalPrice):servicePrice+additionalFee;
+  const discount=Number(b.promoDiscount||0);
   const message=[
     "Halo "+(b.name||"Kak")+", 👋",
     "",
@@ -266,6 +348,7 @@ function sendOrderProof(id){
     "",
     "💰 Harga layanan: "+formatRupiah(servicePrice),
     additionalFee?"➕ Tambahan capster Rezky: "+formatRupiah(additionalFee):"",
+    discount?"🎟️ Diskon promo: -"+formatRupiah(discount):"",
     "💵 Total: "+formatRupiah(total),
     "",
     "📌 Status: "+(b.status||"Confirmed"),
@@ -306,7 +389,12 @@ function remindCustomer(id){
   window.open(url,"_blank","noopener,noreferrer");
   toast("WhatsApp reminder dibuka.");
 }
-search.oninput=load;status.onchange=load;barber.onchange=load;document.getElementById("quickReschedule").onclick=()=>{let b=bookings.find(x=>!["Cancelled","Completed"].includes(x.status));if(b)openRes(b.id)};document.getElementById("quickAll").onclick=()=>{search.value="";status.value="all";barber.value="all";load()};document.getElementById("newBooking").onclick=()=>location.href="?page=booking";document.getElementById("resetDemo").style.display="none";
+search.oninput=render;status.onchange=render;barber.onchange=render;
+monthFilter.onchange=()=>{selectedMonth=monthFilter.value;search.value="";status.value="all";barber.value="all";render()};
+document.getElementById("quickReschedule").onclick=()=>{let b=bookings.find(x=>monthKey_(x.date)===selectedMonthKey_()&&!['Cancelled','Completed'].includes(x.status));if(b)openRes(b.id)};
+document.getElementById("quickToday").onclick=()=>{search.value="";status.value="all";barber.value="all";const rows=bookings.filter(b=>b.date===k(today)&&monthKey_(b.date)===selectedMonthKey_());list.innerHTML=rows.length?rows.map(b=>`<article class="booking"><div class="datebox"><strong>${b.time}</strong><small>${dt(b.date)}</small></div><div class="client"><strong>${esc(b.name)}</strong><small>${esc(b.service)} · ${esc(b.wa)}</small></div><div class="barber"><strong>${esc(b.barber)}</strong><small>${esc(b.note)}</small><span class="status ${b.status.toLowerCase()}">${b.status}</span></div><div class="row-actions"><button class="iconbtn" onclick="sendOrderProof('${b.id}')">📤</button><button class="iconbtn" onclick="remindCustomer('${b.id}')">🔔</button><button class="iconbtn" onclick="openRes('${b.id}')">↻</button><button class="iconbtn" onclick="done('${b.id}')">✓</button><button class="iconbtn cancel-btn" onclick="cancel('${b.id}')">×</button></div></article>`).join(""): '<div class="empty">Tidak ada booking hari ini.</div>';};
+document.getElementById("quickAll").onclick=()=>{search.value="";status.value="all";barber.value="all";render()};
+document.getElementById("newBooking").onclick=()=>location.href="?page=booking";document.getElementById("resetDemo").style.display="none";
 function toast(x){let t=document.getElementById("toast");t.textContent=x;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2200)}load();
 </script>
 </body>
