@@ -6,7 +6,7 @@
  * GAS_URL=https://script.google.com/macros/s/DEPLOYMENT_ID/exec
  */
 
-const GAS_URL = String(process.env.GAS_URL || '').trim();
+const GAS_URL = String(process.env.GAS_URL || 'https://script.google.com/macros/s/AKfycbyzX8z6NF0uhZjlvbi9eGDGWp2vfbn1Yt36TnqF817/exec').trim();
 
 function sendJson(res, status, payload) {
   res.status(status);
