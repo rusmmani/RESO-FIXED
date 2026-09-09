@@ -153,7 +153,23 @@ if(isLoggedIn())showDashboard();else showLogin();
 loginForm.addEventListener("submit",e=>{e.preventDefault();if(pinInput.value===ADMIN_PIN){sessionStorage.setItem(AUTH_KEY,"1");loginError.textContent="";pinInput.value="";showDashboard();load();}else{loginError.textContent="PIN salah. Silakan coba lagi.";pinInput.value="";pinInput.focus()}});
 pinToggle.addEventListener("click",()=>{const visible=pinInput.type==="text";pinInput.type=visible?"password":"text";pinToggle.textContent=visible?"◉":"◌"});
 
-async function api(action,payload={}){const res=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8","Accept":"application/json, text/plain, */*"},cache:"no-store",body:JSON.stringify({action,...payload})});const text=await res.text();let data;try{data=JSON.parse(text)}catch(e){throw new Error("Server mengirim response bukan JSON (HTTP "+res.status+")")};if(!res.ok||data&&data.ok===false)throw new Error(data?.error||"Permintaan gagal");let result=data?.data!==undefined?data.data:data;return result;}
+async function api(action,payload={}){
+  const readActions=new Set(["getBookings","getSettings","getBookingMonths","getClientBookingData","validatePromo"]);
+  let res;
+  if(readActions.has(action)){
+    const q=new URLSearchParams({api:action});
+    Object.entries(payload||{}).forEach(([k,v])=>{if(v!==undefined&&v!==null)q.set(k,String(v));});
+    res=await fetch(API_URL+"?"+q.toString(),{method:"GET",headers:{"Accept":"application/json, text/plain, */*"},cache:"no-store"});
+  }else{
+    res=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8","Accept":"application/json, text/plain, */*"},cache:"no-store",body:JSON.stringify({action,...payload})});
+  }
+  const text=await res.text();let data;
+  try{data=JSON.parse(text)}catch(e){throw new Error("Server mengirim response bukan JSON (HTTP "+res.status+")")};
+  if(!res.ok||data&&data.ok===false)throw new Error(data?.error||"Permintaan gagal");
+  let result=data?.data!==undefined?data.data:data;
+  if(result?.ok!==undefined&&result?.data!==undefined)result=result.data;
+  return result;
+}
 let settings={capsters:[],promos:[]};
 const G=null, monthFilter=document.getElementById("monthFilter"), list=document.getElementById("bookingList"),search=document.getElementById("search"),status=document.getElementById("statusFilter"),barber=document.getElementById("barberFilter"),mn=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"],dn=["Min","Sen","Sel","Rab","Kam","Jum","Sab"],today=new Date();
 today.setHours(0,0,0,0);let bookings=[],bookingMonths=[],selectedMonth="",current=null,selDate=null,selTime=null,view=new Date(today.getFullYear(),today.getMonth(),1);
