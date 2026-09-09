@@ -649,19 +649,20 @@ button,a{touch-action:manipulation}
 document.addEventListener("DOMContentLoaded",()=>{
 const API_URL="/api/reso";
 async function api(action,payload={}){
-  const r=await fetch(API_URL,{
-    method:"POST",
-    headers:{"Content-Type":"text/plain;charset=UTF-8","Accept":"application/json, text/plain, */*"},
-    body:JSON.stringify({action,...payload})
-  });
+  const readActions=new Set(["getSettings","getClientBookingData","validatePromo"]);
+  let r;
+  if(readActions.has(action)){
+    const q=new URLSearchParams({api:action});
+    Object.entries(payload||{}).forEach(([k,v])=>{if(v!==undefined&&v!==null)q.set(k,String(v));});
+    r=await fetch(API_URL+"?"+q.toString(),{method:"GET",headers:{"Accept":"application/json, text/plain, */*"},cache:"no-store"});
+  }else{
+    r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8","Accept":"application/json, text/plain, */*"},body:JSON.stringify({action,...payload}),cache:"no-store"});
+  }
   const text=await r.text();
   let d;
-  try{ d=JSON.parse(text); }catch(e){ throw new Error("Server mengirim response yang bukan JSON."); }
+  try{ d=JSON.parse(text); }catch(e){ throw new Error("Server mengirim response yang bukan JSON (HTTP "+r.status+")."); }
   if(!r.ok) { const msg=d?.error||d?.data?.error||("HTTP "+r.status); throw new Error(msg); }
   if(d?.ok===false) throw new Error(d.error||"Gagal terhubung ke server");
-
-  // Normal: {ok:true,data:{times:[...]}}
-  // Toleransi jika Vercel/GAS membungkus response lebih dari sekali.
   let result=d?.data!==undefined?d.data:d;
   if(result?.ok!==undefined && result?.data!==undefined) result=result.data;
   return result;
