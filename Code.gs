@@ -179,7 +179,15 @@ function getAllBookingSheets_() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   // Pastikan tab bulan berjalan selalu ada.
   getSheet_(new Date());
-  return ss.getSheets().filter(sh => /^.+ \d{4}$/.test(sh.getName()) && sh.getName() !== CAPSTER_SHEET && sh.getName() !== PROMO_SHEET);
+
+  // Sertakan sheet legacy `Bookings` agar data lama yang sudah ada di
+  // Spreadsheet tetap terbaca oleh website/admin.
+  const sheets = ss.getSheets().filter(sh =>
+    (/^.+ \d{4}$/.test(sh.getName()) || sh.getName() === SHEET_NAME) &&
+    sh.getName() !== CAPSTER_SHEET &&
+    sh.getName() !== PROMO_SHEET
+  );
+  return sheets;
 }
 
 /**
@@ -266,28 +274,46 @@ function createBooking(p) {
 }
 
 function getBookingMonths() {
-  const sheets = getAllBookingSheets_();
-  const months = sheets.map(sh => sh.getName());
-  return months.sort((a,b) => {
-    const pa = /^(.+) (\d{4})$/.exec(a), pb = /^(.+) (\d{4})$/.exec(b);
-    const idx = {'Januari':0,'Februari':1,'Maret':2,'April':3,'Mei':4,'Juni':5,'Juli':6,'Agustus':7,'September':8,'Oktober':9,'November':10,'Desember':11};
-    const da = pa ? new Date(Number(pa[2]), idx[pa[1]] ?? 0, 1).getTime() : 0;
-    const db = pb ? new Date(Number(pb[2]), idx[pb[1]] ?? 0, 1).getTime() : 0;
-    return db - da;
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  getSheet_(new Date());
+  const names = new Set();
+  const monthSheets = ss.getSheets().filter(sh => /^.+ \d{4}$/.test(sh.getName()));
+  monthSheets.forEach(sh => names.add(sh.getName()));
+
+  // Tambahkan bulan dari data legacy `Bookings`, jika ada.
+  const legacy = ss.getSheetByName(SHEET_NAME);
+  if (legacy && legacy.getLastRow() >= 2) {
+    const dates = legacy.getRange(2,13,legacy.getLastRow()-1,1).getValues();
+    dates.forEach(r => {
+      if (r[0]) names.add(getMonthSheetName_(r[0]));
+    });
+  }
+
+  const idx = {'Januari':0,'Februari':1,'Maret':2,'April':3,'Mei':4,'Juni':5,'Juli':6,'Agustus':7,'September':8,'Oktober':9,'November':10,'Desember':11};
+  return Array.from(names).sort((a,b) => {
+    const pa=/^(.+) (\d{4})$/.exec(a), pb=/^(.+) (\d{4})$/.exec(b);
+    const da=pa ? new Date(Number(pa[2]), idx[pa[1]] ?? 0, 1).getTime() : 0;
+    const db=pb ? new Date(Number(pb[2]), idx[pb[1]] ?? 0, 1).getTime() : 0;
+    return db-da;
   });
 }
 
 function getBookings() {
   const sheets = getAllBookingSheets_();
-  const all = [];
+  const byId = new Map();
   sheets.forEach(sh => {
     const last = sh.getLastRow();
     if (last >= 2) {
       const rows = sh.getRange(2,1,last-1,17).getValues();
-      rows.filter(r => r[0]).forEach(r => all.push(rowToObject_(r)));
+      rows.filter(r => r[0]).forEach(r => {
+        const obj = rowToObject_(r);
+        if (obj.id) byId.set(obj.id, obj);
+      });
     }
   });
-  return all.sort((a,b) => String(b.date+' '+b.time).localeCompare(String(a.date+' '+a.time)));
+  return Array.from(byId.values()).sort((a,b) =>
+    String(b.date+' '+b.time).localeCompare(String(a.date+' '+a.time))
+  );
 }
 
 function getClientBookingData(date, barber) {
@@ -333,25 +359,61 @@ function updateBooking(p) {
   if (!p || !p.id) throw new Error('ID booking tidak ditemukan.');
   const loc = findBookingLocation_(p.id);
   if (!loc) throw new Error('Booking tidak ditemukan.');
-  const sh = loc.sh, targetRow = loc.row;
+
+  const sh = loc.sh;
+  const targetRow = loc.row;
   const target = sh.getRange(targetRow,1,1,17).getValues()[0];
-  if (p.date && p.time) {
-    const conflict = findConflict_(getSheet_(p.date), p.date, p.time, String(target[11]), String(p.id));
+  if (p.status !== undefined && !['Confirmed','Rescheduled','Cancelled','Completed'].includes(String(p.status))) {
+    throw new Error('Status booking tidak valid.');
+  }
+  if (p.name !== undefined && !String(p.name).trim()) throw new Error('Nama customer wajib diisi.');
+  if (p.service !== undefined && !String(p.service).trim()) throw new Error('Layanan wajib diisi.');
+  if (p.duration !== undefined && !String(p.duration).trim()) throw new Error('Durasi wajib diisi.');
+  const newDate = p.date ? String(p.date) : normalizeDate_(target[12]);
+  const newTime = p.time ? String(p.time) : String(target[13] || '');
+  const newBarber = p.barber ? String(p.barber).trim() : String(target[11] || '').trim();
+
+  if (p.date || p.time || p.barber) {
+    if (!newDate || !newTime || !newBarber) throw new Error('Tanggal, jam, dan capster wajib diisi.');
+    if (!isValidTime_(newTime)) throw new Error('Jam booking tidak valid.');
+    const destination = getSheet_(newDate);
+    const conflict = findConflict_(destination, newDate, newTime, newBarber, String(p.id));
     if (conflict) throw new Error('Jam tersebut sudah terisi untuk capster ini.');
   }
-  if (p.date) sh.getRange(targetRow,13).setValue(p.date);
-  if (p.time) sh.getRange(targetRow,14).setValue(p.time);
-  if (p.status) sh.getRange(targetRow,15).setValue(p.status);
-  if (p.note !== undefined) sh.getRange(targetRow,5).setValue(String(p.note));
 
-  // Jika reschedule pindah bulan, pindahkan baris ke tab bulan tujuan.
-  if (p.date && getMonthSheetName_(p.date) !== sh.getName()) {
+  // Field yang boleh diedit dari admin. Field ID/timestamp tidak diubah.
+  if (p.name !== undefined) sh.getRange(targetRow,3).setValue(String(p.name).trim());
+  if (p.wa !== undefined) { const wa = normalizeWa_(p.wa); if (!/^08\d{8,12}$/.test(wa)) throw new Error('Nomor WhatsApp tidak valid.'); sh.getRange(targetRow,4).setValue(wa); }
+  if (p.note !== undefined) sh.getRange(targetRow,5).setValue(String(p.note));
+  if (p.reminder !== undefined) sh.getRange(targetRow,6).setValue(p.reminder ? 'Ya' : 'Tidak');
+  if (p.category !== undefined) sh.getRange(targetRow,8).setValue(String(p.category));
+  if (p.service !== undefined) sh.getRange(targetRow,9).setValue(String(p.service));
+  if (p.price !== undefined) sh.getRange(targetRow,10).setValue(parsePrice_(p.price));
+  if (p.duration !== undefined) sh.getRange(targetRow,11).setValue(String(p.duration));
+  if (p.barber !== undefined) sh.getRange(targetRow,12).setValue(newBarber);
+  if (p.date !== undefined) sh.getRange(targetRow,13).setValue(newDate);
+  if (p.time !== undefined) sh.getRange(targetRow,14).setValue(newTime);
+  if (p.status !== undefined) sh.getRange(targetRow,15).setValue(String(p.status));
+  if (p.promo !== undefined) sh.getRange(targetRow,7).setValue(String(p.promo).trim().toUpperCase());
+  if (p.promoDiscount !== undefined) sh.getRange(targetRow,16).setValue(Number(p.promoDiscount || 0));
+  if (p.totalPrice !== undefined) sh.getRange(targetRow,17).setValue(Number(p.totalPrice || 0));
+
+  // Jika tanggal pindah bulan atau sumbernya sheet legacy `Bookings`,
+  // pindahkan record ke sheet bulan tujuan agar struktur tetap konsisten.
+  const shouldMove = getMonthSheetName_(newDate) !== sh.getName();
+  if (shouldMove) {
     const updated = sh.getRange(targetRow,1,1,17).getValues()[0];
-    getSheet_(p.date).appendRow(updated);
+    const destination = getSheet_(newDate);
+    const conflict = findConflict_(destination, newDate, newTime, newBarber, String(p.id));
+    if (conflict) throw new Error('Jam tersebut sudah terisi untuk capster ini.');
+    destination.appendRow(updated);
     sh.deleteRow(targetRow);
   }
-  return {ok:true};
+
+  const finalLoc = findBookingLocation_(p.id);
+  return finalLoc ? rowToObject_(finalLoc.sh.getRange(finalLoc.row,1,1,17).getValues()[0]) : {id:String(p.id)};
 }
+
 function cancelBooking(id, reason) {
   // Cancel sekarang benar-benar menghapus booking dari Spreadsheet.
   // Data tidak hanya diubah statusnya menjadi Cancelled.
