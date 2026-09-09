@@ -431,6 +431,8 @@ button,a{touch-action:manipulation}
 }
 
 @media(max-width:700px){.booking-barber-grid{grid-template-columns:1fr}.barber-photo{width:68px;height:74px}}\n.barber-fee{display:inline-block!important;margin-top:4px;font-weight:700;letter-spacing:.04em;}
+
+.dynamic-capster-off{opacity:.45;pointer-events:none}.booking-promo-message{margin-top:7px;font:9px var(--mono);line-height:1.5}.booking-promo-message.ok{color:#315c43}.booking-promo-message.err{color:#7b3d38}
 </style>
 </head>
 <body>
@@ -571,8 +573,8 @@ button,a{touch-action:manipulation}
 </section>
 </main>
 <footer class="footer">
-<div class="container footer-top"><div><div class="footer-brand">RESO Haircut</div></div><div class="footer-copy">© 2026 · Semua jadwal dikelola lewat Resva</div></div>
-<div class="container footer-bottom"><span>Indramayu, Jawa Barat</span><a href="https://www.resva.id" target="_blank">Powered by Resva — buat halaman booking-mu sendiri <span>↗</span></a></div>
+<div class="container footer-top"><div><div class="footer-brand">RESO Haircut</div></div><div class="footer-copy">© 2026</div></div>
+<div class="container footer-bottom"><span>Indramayu, Jawa Barat</span></div>
 </footer>
 <div aria-hidden="true" class="modal" id="bookingModal">
 <div class="modal-overlay"></div>
@@ -626,7 +628,7 @@ button,a{touch-action:manipulation}
 <label>No. WhatsApp<input autocomplete="tel" id="clientWa" placeholder="08xxxxxxxxxx" type="tel"/></label>
 <label>Catatan <span>opsional</span><textarea id="clientNote" placeholder="Contoh: mau model seperti foto..." rows="3"></textarea></label>
 <label class="toggle-row"><span><strong>Ingatkan 1 jam sebelumnya</strong><small>Notifikasi pengingat sebelum jadwal.</small></span><input id="clientReminder" type="checkbox"/><i></i></label>
-<label>Kode promo <span>opsional</span><input id="promoCode" placeholder="Masukkan kode promo" type="text"/></label>
+<label>Kode promo <span>opsional</span><input id="promoCode" placeholder="Masukkan kode promo" type="text"/><div id="promoMessage" class="booking-promo-message"></div></label>
 </div>
 </div>
 <div class="booking-step" data-step="5">
@@ -666,7 +668,8 @@ async function api(action,payload={}){
 }
 const modal=document.getElementById("bookingModal"),close=document.getElementById("modalClose"),booking=document.getElementById("bookingButton");
 const steps=[...document.querySelectorAll(".booking-step")],stepNo=document.getElementById("bookingStepNumber"),progress=document.getElementById("bookingProgress");
-const state={category:"hair",services:[],service:null,price:null,duration:null,barber:null,date:null,time:null,additionalFee:0};
+const state={category:"hair",services:[],service:null,price:null,duration:null,barber:null,date:null,time:null,additionalFee:0,promoCode:"",promoDiscount:0,promoMessage:""};
+const esc=s=>String(s??"").replace(/[&<>"\']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\'":"&#039;"}[c]));
 const services={hair:[["Haircut (+ Wash)","50 mnt","Rp50.000"],["Shave Trim","15 mnt","Rp10.000"],["Head Massage","5 mnt","Rp10.000"]],treatment:[["Creambath","20 mnt","Rp65.000"],["Hair Mask","20 mnt","Rp55.000"],["Catok","10 mnt","Rp25.000"]],coloring:[["Basic Color","60 mnt","Rp60.000"],["Bleach (highlight/full)","90 mnt","Rp100.000"],["Fashion Color (highlight)","180 mnt","Rp330.000"],["Fashion Color (full)","200 mnt","Rp420.000"]],special:[["Down Perm","40 mnt","Rp110.000"],["Shang Perm","90 mnt","Rp300.000"],["Design Perm","90 mnt","Rp350.000"],["Curly Perm (Cold)","60 mnt","Rp250.000"],["Curly Perm (Hot)","60 mnt","Rp300.000"],["Keratine","90 mnt","Rp250.000"],["Smoothing","90 mnt","Rp225.000"],["Cornrow","240 mnt","Rp300.000"],["Braids","240 mnt","Rp350.000"]]};
 const cats=[["hair","HAIR",3],["treatment","TREATMENT",3],["coloring","COLORING",4],["special","SPECIAL TREATMENT",9]],catBox=document.getElementById("bookingCategories"),serviceBox=document.getElementById("bookingServices");
 catBox.innerHTML=cats.map(x=>`<button class="booking-cat ${x[0]=="hair"?"active":""}" data-cat="${x[0]}"><strong>${x[1]}</strong><small>${String(x[2]).padStart(2,"0")} layanan</small></button>`).join("");
@@ -694,7 +697,25 @@ function rs(){
 }
 rs();
 catBox.querySelectorAll("button").forEach(b=>b.onclick=()=>{state.category=b.dataset.cat;catBox.querySelectorAll("button").forEach(x=>x.classList.toggle("active",x===b));rs()});document.querySelectorAll(".service-categories .category-btn").forEach(btn=>btn.addEventListener("click",()=>{const cat=btn.dataset.category;document.querySelectorAll(".service-categories .category-btn").forEach(x=>x.classList.toggle("active",x===btn));document.querySelectorAll(".service-panels .service-panel").forEach(panel=>panel.classList.toggle("active",panel.dataset.panel===cat))}));
-document.querySelectorAll(".barber-option").forEach(b=>b.onclick=()=>{state.barber=b.dataset.barber;state.additionalFee=state.barber==="Rezky"?5000:0;document.querySelectorAll(".barber-option").forEach(x=>x.classList.toggle("active",x===b));loadTimes()});
+let siteSettings={capsters:[],promos:[]};
+function renderBookingCapsters(){
+  const box=document.getElementById("bookingBarbers");
+  if(!box)return;
+  const active=siteSettings.capsters.filter(c=>c.active);
+  box.innerHTML=active.length?active.map((c,i)=>`<button class="booking-option barber-option ${state.barber===c.name?"active":""}" data-barber="${esc(c.name)}"><span class="barber-copy"><span class="option-index">${String(i+1).padStart(2,"0")}</span><strong>${esc(c.name)}</strong><small>Barber profesional RESO Haircut</small></span><b>→</b></button>`).join(""):'<div style="padding:20px;text-align:center;font:9px var(--mono);color:#777;grid-column:1/-1">BELUM ADA CAPSTER YANG AKTIF</div>';
+  box.querySelectorAll(".barber-option").forEach(b=>b.onclick=()=>{
+    state.barber=b.dataset.barber;
+    state.additionalFee=state.barber==="Rezky"?5000:0;
+    box.querySelectorAll(".barber-option").forEach(x=>x.classList.toggle("active",x===b));
+    loadTimes();
+  });
+}
+async function loadSiteSettings(){
+  try{
+    siteSettings=await api("getSettings")||{capsters:[],promos:[]};
+    renderBookingCapsters();
+  }catch(e){console.error("RESO settings:",e)}
+}
 const dp=document.getElementById("datePicker"),tg=document.getElementById("timeGrid"),ml=document.getElementById("bookingMonth"),now=new Date();now.setHours(0,0,0,0);
 const dates=[...Array(21)].map((_,i)=>{let d=new Date(now);d.setDate(now.getDate()+i);return d}),mn=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"],dn=["Min","Sen","Sel","Rab","Kam","Jum","Sab"],lk=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 function rd(){ml.textContent=(state.date?new Date(state.date+"T00:00:00"):dates[0]).toLocaleString("id-ID",{month:"long",year:"numeric"}).toUpperCase();dp.innerHTML=dates.map((d,i)=>`<button class="date-option ${state.date===lk(d)?"active":""}" data-date="${lk(d)}"><span class="day">${i?"": "Hari ini"}</span><strong>${d.getDate()}</strong><small>${mn[d.getMonth()].slice(0,3)}</small></button>`).join("");dp.querySelectorAll("button").forEach(b=>b.onclick=()=>{state.date=b.dataset.date;state.time=null;rd();loadTimes()})}
@@ -740,65 +761,87 @@ async function loadTimes(){
 }
 state.date=lk(dates[0]);
 rd();
-function open(pref){state.services=[];state.service=null;state.price=null;state.duration=null;if(pref){for(const[c,l]of Object.entries(services)){let f=l.find(x=>x[0]===pref);if(f){state.category=c;if(!state.services.some(s=>s.name===f[0]))state.services.push({name:f[0],duration:f[1],price:f[2],category:c});break}}syncSelected()}rs();modal.classList.add("active"); modal.setAttribute("aria-hidden","false");document.body.classList.add("modal-open");go(1)}
+function open(pref){state.services=[];state.service=null;state.price=null;state.duration=null;state.promoCode="";state.promoDiscount=0;state.promoMessage="";document.getElementById("promoCode").value="";document.getElementById("promoMessage").textContent="";if(pref){for(const[c,l]of Object.entries(services)){let f=l.find(x=>x[0]===pref);if(f){state.category=c;if(!state.services.some(s=>s.name===f[0]))state.services.push({name:f[0],duration:f[1],price:f[2],category:c});break}}syncSelected()}rs();modal.classList.add("active"); modal.setAttribute("aria-hidden","false");document.body.classList.add("modal-open");go(1)}
 function hide(){modal.classList.remove("active"); modal.setAttribute("aria-hidden","true");document.body.classList.remove("modal-open")}
 function go(n){steps.forEach(x=>x.classList.toggle("active",+x.dataset.step===n));stepNo.textContent=String(n).padStart(2,"0");progress.style.width=n*20+"%";document.getElementById("bookingBack").disabled=n===1;document.getElementById("bookingNext").innerHTML=n===5?"Konfirmasi Booking <span>✓</span>":"Lanjut <span>→</span>"}
 function normalizeWa(v){v=String(v||"").replace(/[^0-9+]/g,"");if(v.startsWith("+62"))v="0"+v.slice(3);else if(v.startsWith("62"))v="0"+v.slice(2);return v}
 function valid(n){if(n===4){const el=document.getElementById("clientWa");el.value=normalizeWa(el.value);if(!/^08\d{8,12}$/.test(el.value))return alert("Nomor WhatsApp harus diawali 08."),false}if(n===1&&!state.services.length)return alert("Pilih minimal satu layanan dulu."),false;if(n===2&&!state.barber)return alert("Pilih capster dulu."),false;if(n===3&&(!state.date||!state.time))return alert("Pilih tanggal dan jam dulu."),false;if(n===4&&!document.getElementById("clientName").value.trim())return alert("Isi nama dulu."),false;if(n===4&&!document.getElementById("clientWa").value.trim())return alert("Isi WhatsApp dulu."),false;return true}
 function priceNumber(v){return Number(String(v||"").replace(/[^0-9]/g,""))||0}
 function formatRupiah(v){return "Rp"+Number(v||0).toLocaleString("id-ID")}
-function totalPrice(){return priceNumber(state.price)+state.additionalFee}
-function summary(){let d=new Date(state.date+"T00:00:00");const feeRow=state.additionalFee?`<div class="summary-row"><span>Biaya Rezky</span><strong>${formatRupiah(state.additionalFee)}<small>Biaya tambahan capster Rezky</small></strong></div>`:"";document.getElementById("bookingSummary").innerHTML=`<div class="summary-row"><span>Layanan</span><strong>${state.services.map(x=>x.name).join(" + ")}<small>${state.duration} · ${formatRupiah(state.services.reduce((s,x)=>s+priceNumber(x.price),0))}</small></strong></div><div class="summary-row"><span>Capster</span><strong>${state.barber}</strong></div>${feeRow}<div class="summary-row"><span>Total</span><strong>${formatRupiah(totalPrice())}</strong></div><div class="summary-row"><span>Jadwal</span><strong>${dn[d.getDay()]}, ${d.getDate()} ${mn[d.getMonth()]} ${d.getFullYear()}<small>${state.time}</small></strong></div><div class="summary-row"><span>Client</span><strong>${document.getElementById("clientName").value}<small>${document.getElementById("clientWa").value}</small></strong></div>`}
+function totalPrice(){return Math.max(0,priceNumber(state.price)+state.additionalFee-state.promoDiscount)}
+async function applyPromo(){
+  const el=document.getElementById("promoCode"), code=el.value.trim().toUpperCase();
+  state.promoCode=code; state.promoDiscount=0; state.promoMessage="";
+  const msg=document.getElementById("promoMessage");
+  if(!code){msg.textContent="";msg.className="booking-promo-message";return true}
+  try{
+    const r=await api("validatePromo",{code});
+    if(!r?.valid){msg.textContent=r?.message||"Kode promo tidak valid.";msg.className="booking-promo-message err";return false}
+    const base=priceNumber(state.price)+state.additionalFee;
+    state.promoDiscount=r.discountType==="fixed"?Math.min(base,Number(r.discountValue||0)):Math.min(base,Math.round(base*Number(r.discountValue||0)/100));
+    state.promoMessage="Promo "+r.code+" aktif — hemat "+formatRupiah(state.promoDiscount);
+    msg.textContent=state.promoMessage;msg.className="booking-promo-message ok";return true;
+  }catch(e){msg.textContent=e.message||"Promo gagal dicek.";msg.className="booking-promo-message err";return false}
+}
+function summary(){let d=new Date(state.date+"T00:00:00");const feeRow=state.additionalFee?`<div class="summary-row"><span>Biaya Rezky</span><strong>${formatRupiah(state.additionalFee)}<small>Biaya tambahan capster Rezky</small></strong></div>`:"";document.getElementById("bookingSummary").innerHTML=`<div class="summary-row"><span>Layanan</span><strong>${state.services.map(x=>x.name).join(" + ")}<small>${state.duration} · ${formatRupiah(state.services.reduce((s,x)=>s+priceNumber(x.price),0))}</small></strong></div><div class="summary-row"><span>Capster</span><strong>${state.barber}</strong></div>${feeRow}${state.promoDiscount?`<div class="summary-row"><span>Diskon promo</span><strong>-${formatRupiah(state.promoDiscount)}<small>${state.promoCode}</small></strong></div>`:""}<div class="summary-row"><span>Total</span><strong>${formatRupiah(totalPrice())}</strong></div><div class="summary-row"><span>Jadwal</span><strong>${dn[d.getDay()]}, ${d.getDate()} ${mn[d.getMonth()]} ${d.getFullYear()}<small>${state.time}</small></strong></div><div class="summary-row"><span>Client</span><strong>${document.getElementById("clientName").value}<small>${document.getElementById("clientWa").value}</small></strong></div>`}
 booking.onclick=e=>{e.preventDefault();open()};document.getElementById("priceBookingBtn")?.addEventListener("click",()=>open());document.querySelectorAll(".service-arrow").forEach(b=>b.onclick=()=>open(b.dataset.service));close.onclick=hide;modal.querySelector(".modal-overlay").onclick=hide;
 document.getElementById("bookingBack").onclick=()=>{let n=steps.findIndex(x=>x.classList.contains("active"))+1;if(n>1)go(n-1)};
-document.getElementById("bookingNext").onclick=()=>{let n=steps.findIndex(x=>x.classList.contains("active"))+1;if(n<5){if(valid(n)){go(n+1);if(n+1===5)summary()}}else if(valid(4)){let p={
-  name:document.getElementById("clientName").value.trim(),
-  wa:document.getElementById("clientWa").value.trim(),
-  note:document.getElementById("clientNote").value.trim(),
-  reminder:document.getElementById("clientReminder").checked,
-  promo:document.getElementById("promoCode").value.trim(),
-  category:state.category,
-  service:state.service,
-  price:state.price,
-  duration:state.duration,
-  additionalFee:state.additionalFee,
-  totalPrice:totalPrice(),
-  barber:state.barber,
-  date:state.date,
-  time:state.time
+document.getElementById("bookingNext").onclick=async()=>{
+  let n=steps.findIndex(x=>x.classList.contains("active"))+1;
+  if(n<5){
+    if(n===4){
+      if(!valid(4))return;
+      const ok=await applyPromo();
+      if(!ok && document.getElementById("promoCode").value.trim())return;
+    }else if(!valid(n))return;
+    go(n+1);
+    if(n+1===5)summary();
+    return;
+  }
+  if(!valid(4))return;
+  const promoOk=await applyPromo();
+  if(!promoOk && document.getElementById("promoCode").value.trim())return;
+  summary();
+  let p={
+    name:document.getElementById("clientName").value.trim(),
+    wa:document.getElementById("clientWa").value.trim(),
+    note:document.getElementById("clientNote").value.trim(),
+    reminder:document.getElementById("clientReminder").checked,
+    promo:state.promoCode,
+    category:state.category,
+    service:state.service,
+    price:state.price,
+    duration:state.duration,
+    additionalFee:state.additionalFee,
+    promoDiscount:state.promoDiscount,
+    totalPrice:totalPrice(),
+    barber:state.barber,
+    date:state.date,
+    time:state.time
+  };
+  let btn=document.getElementById("bookingNext");
+  btn.disabled=true;
+  try{
+    const r=await api("createBooking",p);
+    btn.disabled=false; hide(); loadTimes();
+    const adminWa="6283845500771";
+    const d=new Date(state.date+"T00:00:00");
+    const message=[
+      "Halo Admin RESO Haircut, saya ingin konfirmasi booking.","",
+      "*DATA BOOKING*","ID: "+(r.id||"-"),"Nama: "+p.name,"WhatsApp: "+p.wa,
+      "Layanan: "+p.service,"Durasi: "+p.duration,"Capster: "+p.barber,
+      "Tanggal: "+dn[d.getDay()]+", "+d.getDate()+" "+mn[d.getMonth()]+" "+d.getFullYear(),
+      "Jam: "+p.time,"Harga layanan: "+p.price,
+      (p.additionalFee?"Biaya tambahan Rezky: "+formatRupiah(p.additionalFee):null),
+      (p.promoDiscount?"Diskon promo "+p.promo+": -"+formatRupiah(p.promoDiscount):null),
+      "Total: "+formatRupiah(r.totalPrice!==undefined?r.totalPrice:p.totalPrice),
+      "Catatan: "+(p.note||"-"),"Kode promo: "+(p.promo||"-"),
+      "Pengingat 1 jam: "+(p.reminder?"Ya":"Tidak")
+    ].filter(Boolean).join("\n");
+    window.location.href="https://wa.me/"+adminWa+"?text="+encodeURIComponent(message);
+  }catch(e){btn.disabled=false;alert(e.message||"Booking gagal")}
 };
-let btn=document.getElementById("bookingNext");
-btn.disabled=true;
-api("createBooking",p).then(r=>{
-  btn.disabled=false;
-  hide();
-  loadTimes();
-  const adminWa="6283845500771";
-  const d=new Date(state.date+"T00:00:00");
-  const message=[
-    "Halo Admin RESO Haircut, saya ingin konfirmasi booking.",
-    "",
-    "*DATA BOOKING*",
-    "ID: "+(r.id||"-"),
-    "Nama: "+p.name,
-    "WhatsApp: "+p.wa,
-    "Layanan: "+p.service,
-    "Durasi: "+p.duration,
-    "Capster: "+p.barber,
-    "Tanggal: "+dn[d.getDay()]+", "+d.getDate()+" "+mn[d.getMonth()]+" "+d.getFullYear(),
-    "Jam: "+p.time,
-    "Harga layanan: "+p.price,
-    (p.additionalFee?"Biaya tambahan Rezky: "+formatRupiah(p.additionalFee):null),
-    "Total: "+formatRupiah(p.totalPrice),
-    "Catatan: "+(p.note||"-"),
-    "Kode promo: "+(p.promo||"-"),
-    "Pengingat 1 jam: "+(p.reminder?"Ya":"Tidak")
-  ].filter(Boolean).join("\n");
-  window.location.href="https://wa.me/"+adminWa+"?text="+encodeURIComponent(message);
-}).catch(e=>{
-  btn.disabled=false;
-  alert(e.message||"Booking gagal");
-})}};
+loadSiteSettings();
 });
 </script>
 </body>
