@@ -29,7 +29,10 @@
 .booking-block:active{cursor:grabbing}.booking-block.dragging{opacity:.45;transform:scale(.98)}
 .booking-block strong{font-size:11px}.booking-block small{display:block;font:7px var(--mono);opacity:.68;margin-top:3px}
 .slot-empty{font:8px var(--mono);color:var(--muted);padding:13px 5px;opacity:.55}.drag-instruction{font:8px var(--mono);color:var(--muted);margin:0 0 8px}.modal-footer{display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--border);padding-top:18px;margin-top:22px}
-.toast{position:fixed;right:20px;bottom:20px;background:var(--dark);color:#fff;padding:14px 17px;font-size:10px;opacity:0;transform:translateY(10px);transition:.25s;z-index:20}.toast.show{opacity:1;transform:none}
+.toast{position:fixed;right:20px;bottom:20px;background:var(--dark);color:#fff;padding:14px 17px;font-size:10px;opacity:0;transform:translateY(10px);transition:.25s;z-index:20}
+.edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.edit-field{display:grid;gap:6px}.edit-field.full{grid-column:1/-1}.edit-field label{font:8px var(--mono);text-transform:uppercase;color:var(--muted);letter-spacing:.06em}.edit-field input,.edit-field select,.edit-field textarea{width:100%;border:1px solid var(--border);background:transparent;padding:11px 12px;outline:none;font-size:10px}.edit-field textarea{min-height:86px;resize:vertical}.edit-field input:focus,.edit-field select:focus,.edit-field textarea:focus{border-color:var(--dark)}.edit-readonly{background:#e7e4dd!important;color:var(--muted)}.edit-help{font:8px var(--mono);line-height:1.6;color:var(--muted);margin:-5px 0 8px}.edit-total{padding:13px 14px;background:#e8e5de;border:1px solid var(--border);display:flex;justify-content:space-between;gap:15px;align-items:center}.edit-total strong{font-size:17px}.edit-error{min-height:16px;color:var(--red);font:8px var(--mono);text-transform:uppercase}.edit-footer{justify-content:flex-end}
+@media(max-width:620px){.edit-grid{grid-template-columns:1fr}.edit-field.full{grid-column:auto}}
+.toast.show{opacity:1;transform:none}
 @media(max-width:1000px){.grid{grid-template-columns:1fr}.booking{grid-template-columns:95px 1fr 120px 75px}}
 @media(max-width:720px){.wrap{width:calc(100% - 24px)}.topbar{height:68px}.top-actions .btn:first-child{display:none}.stats{grid-template-columns:1fr 1fr}.stat:nth-child(2){border-right:0}.stat{border-bottom:1px solid var(--border)}.stat:nth-child(3),.stat:nth-child(4){border-bottom:0}.booking{grid-template-columns:1fr auto;gap:10px}.datebox{grid-row:1 / span 2}.barber{grid-column:2}.row-actions{grid-column:2}.times{grid-template-columns:repeat(3,1fr)}.head{align-items:start;flex-direction:column}}
 @media(max-width:480px){.page{padding-top:30px}.panel-head{padding:17px}.filters{padding:12px 17px}.booking{padding:16px 17px}.booking-list .booking .status{display:none}.modal-card{padding:23px 17px}.date-grid{gap:3px}.date-cell{min-height:48px}.stats{margin-bottom:20px}.stat strong{font-size:25px}}
@@ -128,6 +131,34 @@
 </section>
 </main>
 
+<div class="modal" id="editModal">
+  <div class="modal-card">
+    <div class="modal-top"><div><span class="eyebrow">EDIT BOOKING</span><h2>Edit<br><i>semua data.</i></h2></div><button class="close" id="closeEditModal">×</button></div>
+    <div class="edit-help">Semua kolom booking dapat diedit. ID booking dan timestamp dibuat sistem sehingga hanya bisa dibaca.</div>
+    <form id="editForm" class="edit-grid" autocomplete="off">
+      <div class="edit-field"><label>ID Booking</label><input id="editId" class="edit-readonly" readonly></div>
+      <div class="edit-field"><label>Timestamp</label><input id="editTimestamp" class="edit-readonly" readonly></div>
+      <div class="edit-field"><label>Nama Customer</label><input id="editName" required></div>
+      <div class="edit-field"><label>WhatsApp</label><input id="editWa" inputmode="numeric" required></div>
+      <div class="edit-field"><label>Reminder</label><select id="editReminder"><option value="Ya">Ya</option><option value="Tidak">Tidak</option></select></div>
+      <div class="edit-field"><label>Status</label><select id="editStatus"><option value="Confirmed">Confirmed</option><option value="Rescheduled">Rescheduled</option><option value="Cancelled">Cancelled</option><option value="Completed">Completed</option></select></div>
+      <div class="edit-field"><label>Kategori</label><select id="editCategory"><option value="hair">hair</option><option value="treatment">treatment</option><option value="coloring">coloring</option><option value="special">special</option></select></div>
+      <div class="edit-field"><label>Capster</label><select id="editBarber"></select></div>
+      <div class="edit-field full"><label>Layanan</label><input id="editService" required></div>
+      <div class="edit-field"><label>Harga</label><input id="editPrice" type="number" min="0" step="1000" required></div>
+      <div class="edit-field"><label>Durasi</label><input id="editDuration" placeholder="50 mnt" required></div>
+      <div class="edit-field"><label>Tanggal</label><input id="editDate" type="date" required></div>
+      <div class="edit-field"><label>Jam</label><input id="editTime" type="time" step="1800" required></div>
+      <div class="edit-field"><label>Kode Promo</label><input id="editPromo" placeholder="Contoh: RESO10"></div>
+      <div class="edit-field"><label>Diskon Promo</label><input id="editPromoDiscount" type="number" min="0" step="1000"></div>
+      <div class="edit-field"><label>Total Harga</label><input id="editTotalPrice" type="number" min="0" step="1000"></div>
+      <div class="edit-field full"><label>Catatan</label><textarea id="editNote" placeholder="Catatan booking..."></textarea></div>
+      <div class="edit-field full"><div class="edit-total"><span>Total tersimpan</span><strong id="editTotalPreview">Rp0</strong></div></div>
+      <div class="edit-field full"><div class="edit-error" id="editError"></div></div>
+      <div class="modal-footer edit-footer full"><button type="button" class="btn" id="cancelEditModal">Batal</button><button type="submit" class="btn dark" id="saveEditBooking">Simpan Semua Perubahan →</button></div>
+    </form>
+  </div>
+</div>
 <div class="modal" id="resModal">
   <div class="modal-card">
     <div class="modal-top"><div><span class="eyebrow">RESCHEDULE</span><h2>Pindahkan<br>jadwal.</h2></div><button class="close" id="closeModal">×</button></div>
@@ -220,7 +251,7 @@ function render(){
   const q=search.value.toLowerCase(),sf=status.value,bf=barber.value,mk=selectedMonthKey_();
   const monthBookings=bookings.filter(b=>monthKey_(b.date)===mk);
   const r=monthBookings.filter(b=>(!q||`${b.name} ${b.wa} ${b.service} ${b.id}`.toLowerCase().includes(q))&&(sf==="all"||b.status.toLowerCase()===sf)&&(bf==="all"||b.barber===bf));
-  list.innerHTML=r.length?r.map(b=>`<article class="booking"><div class="datebox"><strong>${b.time}</strong><small>${dt(b.date)}</small></div><div class="client"><strong>${esc(b.name)}</strong><small>${esc(b.service)} · ${esc(b.wa)}</small></div><div class="barber"><strong>${esc(b.barber)}</strong><small>${esc(b.note)}</small><span class="status ${b.status.toLowerCase()}">${b.status}</span></div><div class="row-actions"><button class="iconbtn" title="Kirim bukti pesanan via WhatsApp" onclick="sendOrderProof('${b.id}')">📤</button><button class="iconbtn" title="Ingatkan customer via WhatsApp" onclick="remindCustomer('${b.id}')">🔔</button><button class="iconbtn" title="Reschedule" onclick="openRes('${b.id}')">↻</button><button class="iconbtn" title="Selesaikan booking" onclick="done('${b.id}')">✓</button><button class="iconbtn cancel-btn" title="Hapus pesanan" onclick="cancel('${b.id}')">×</button></div></article>`).join(""):`<div class="empty">Tidak ada booking untuk ${esc(selectedMonth)}.</div>`;
+  list.innerHTML=r.length?r.map(b=>`<article class="booking"><div class="datebox"><strong>${b.time}</strong><small>${dt(b.date)}</small></div><div class="client"><strong>${esc(b.name)}</strong><small>${esc(b.service)} · ${esc(b.wa)}</small></div><div class="barber"><strong>${esc(b.barber)}</strong><small>${esc(b.note)}</small><span class="status ${b.status.toLowerCase()}">${b.status}</span></div><div class="row-actions"><button class="iconbtn" title="Edit data booking" onclick="editBooking('${b.id}')">✎</button><button class="iconbtn" title="Kirim bukti pesanan via WhatsApp" onclick="sendOrderProof('${b.id}')">📤</button><button class="iconbtn" title="Ingatkan customer via WhatsApp" onclick="remindCustomer('${b.id}')">🔔</button><button class="iconbtn" title="Reschedule" onclick="openRes('${b.id}')">↻</button><button class="iconbtn" title="Selesaikan booking" onclick="done('${b.id}')">✓</button><button class="iconbtn cancel-btn" title="Hapus pesanan" onclick="cancel('${b.id}')">×</button></div></article>`).join(""):`<div class="empty">Tidak ada booking untuk ${esc(selectedMonth)}.</div>`;
   const active=monthBookings.filter(b=>b.status!=="Cancelled");
   const revenue=active.reduce((sum,b)=>sum+(Number(b.totalPrice)>=0?Number(b.totalPrice):Number(b.price||0)),0);
   document.getElementById("bookingCount").textContent=r.length+" DATA · "+selectedMonth.toUpperCase();
@@ -231,6 +262,52 @@ function render(){
   document.getElementById("todayLabel").textContent=selectedMonth;
   document.querySelector('.panel-head h2').textContent="Booking — "+selectedMonth;
 }
+const editModal=document.getElementById("editModal");
+let editCurrent=null;
+const editFields={id:document.getElementById("editId"),timestamp:document.getElementById("editTimestamp"),name:document.getElementById("editName"),wa:document.getElementById("editWa"),note:document.getElementById("editNote"),reminder:document.getElementById("editReminder"),promo:document.getElementById("editPromo"),category:document.getElementById("editCategory"),service:document.getElementById("editService"),price:document.getElementById("editPrice"),duration:document.getElementById("editDuration"),barber:document.getElementById("editBarber"),date:document.getElementById("editDate"),time:document.getElementById("editTime"),status:document.getElementById("editStatus"),promoDiscount:document.getElementById("editPromoDiscount"),totalPrice:document.getElementById("editTotalPrice")};
+function money_(n){return "Rp"+Number(n||0).toLocaleString("id-ID")}
+function populateEditBarbers_(selected){
+  const names=[...new Set([...(settings.capsters||[]).map(x=>String(x.name||"")),...bookings.map(x=>String(x.barber||""))].filter(Boolean))];
+  if(selected&&!names.includes(selected))names.unshift(selected);
+  editFields.barber.innerHTML=names.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
+  editFields.barber.value=selected||names[0]||"";
+}
+function openEdit(id){
+  const b=bookings.find(x=>String(x.id)===String(id));
+  if(!b)return toast("Booking tidak ditemukan.");
+  editCurrent=b;
+  populateEditBarbers_(b.barber);
+  Object.keys(editFields).forEach(k=>{if(k!=="barber")editFields[k].value=b[k]??""});
+  document.getElementById("editTotalPreview").textContent=money_(b.totalPrice);
+  document.getElementById("editError").textContent="";
+  editModal.classList.add("show");document.body.style.overflow="hidden";
+}
+function closeEdit(){editModal.classList.remove("show");document.body.style.overflow="";editCurrent=null}
+window.editBooking=openEdit;
+document.getElementById("closeEditModal").onclick=closeEdit;
+document.getElementById("cancelEditModal").onclick=closeEdit;
+editModal.addEventListener("click",e=>{if(e.target===editModal)closeEdit()});
+editFields.totalPrice.addEventListener("input",()=>{document.getElementById("editTotalPreview").textContent=money_(editFields.totalPrice.value)});
+document.getElementById("editForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  if(!editCurrent)return;
+  const err=document.getElementById("editError");err.textContent="";
+  const payload={
+    id:editCurrent.id,name:editFields.name.value.trim(),wa:editFields.wa.value.trim(),note:editFields.note.value,reminder:editFields.reminder.value==="Ya",promo:editFields.promo.value.trim().toUpperCase(),category:editFields.category.value,service:editFields.service.value.trim(),price:Number(editFields.price.value||0),duration:editFields.duration.value.trim(),barber:editFields.barber.value,date:editFields.date.value,time:editFields.time.value,status:editFields.status.value,promoDiscount:Number(editFields.promoDiscount.value||0),totalPrice:Number(editFields.totalPrice.value||0)
+  };
+  if(!payload.name||!payload.wa||!payload.service||!payload.barber||!payload.date||!payload.time){err.textContent="Lengkapi data wajib: nama, WhatsApp, layanan, capster, tanggal, jam.";return}
+  const btn=document.getElementById("saveEditBooking");btn.disabled=true;btn.textContent="Menyimpan...";
+  try{
+    const updated=await api("updateBooking",payload);
+    const idx=bookings.findIndex(x=>String(x.id)===String(payload.id));
+    if(idx>=0)bookings[idx]=updated||{...bookings[idx],...payload};
+    closeEdit();
+    await load();
+    toast("Semua perubahan booking berhasil disimpan.");
+  }catch(ex){err.textContent=ex.message||"Gagal menyimpan perubahan."}
+  finally{btn.disabled=false;btn.textContent="Simpan Semua Perubahan →"}
+});
+
 function openRes(id){current=bookings.find(b=>b.id===id);if(!current)return;selDate=current.date;selTime=current.time;let d=new Date(selDate+"T00:00:00");view=new Date(d.getFullYear(),d.getMonth(),1);document.getElementById("resModal").classList.add("show");cal();times();sum()}
 function sum(){document.getElementById("resSummary").innerHTML=`<strong>${esc(current.name)} · ${esc(current.service)}</strong><small>${dt(current.date)} · ${current.time} · ${esc(current.barber)}</small>`}
 function cal(){let f=new Date(view.getFullYear(),view.getMonth(),1),l=new Date(view.getFullYear(),view.getMonth()+1,0),c=[];for(let i=0;i<f.getDay();i++)c.push('<button class="date-cell muted" disabled></button>');for(let i=1;i<=l.getDate();i++){let d=new Date(view.getFullYear(),view.getMonth(),i),x=k(d);c.push(`<button class="date-cell ${x===selDate?"selected":""}" onclick="pickDate('${x}')"><strong>${i}</strong><small>${dn[d.getDay()]}</small></button>`)}document.getElementById("calTitle").textContent=mn[view.getMonth()]+" "+view.getFullYear();document.getElementById("dateGrid").innerHTML=dn.map(x=>`<div class="dayhead">${x}</div>`).join("")+c.join("")}
