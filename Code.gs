@@ -254,7 +254,7 @@ function createBooking(p) {
     const id = 'RS-' + Utilities.formatDate(new Date(), TZ, 'yyyyMMdd-HHmmss') +
       '-' + Math.floor(100 + Math.random() * 900);
     const price = parsePrice_(p.price);
-    const additionalFee = Number(p.additionalFee || 0);
+    const additionalFee = String(p.barber).trim().toLowerCase() === 'rezky' ? 5000 : 0;
     const baseTotal = price + additionalFee;
     const promoResult = validatePromo(String(p.promo || ''));
     const discount = promoResult.valid ? calculateDiscount_(promoResult, baseTotal) : 0;
