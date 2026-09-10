@@ -28,7 +28,7 @@ img{display:block;width:100%}
 .nav-container{height:82px;display:flex;align-items:center;gap:40px}
 .brand{display:flex;align-items:center;gap:12px}
 .brand-logo{width:42px;height:42px;background:#151515;color:white;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid var(--border)}
-.brand-logo img{height:100%;width:100%;object-fit:contain}
+.brand-logo img{height:100%;width:100%;object-fit:cover}
 .logo-mark{font-weight:800;font-size:17px;letter-spacing:-.08em}
 .brand-info{display:flex;flex-direction:column}
 .brand-info strong{font-size:15px;letter-spacing:-.03em}
@@ -440,7 +440,7 @@ button,a{touch-action:manipulation}
 <header class="header">
 <div class="container nav-container">
 <a class="brand" href="#">
-<div class="brand-logo"><span class="logo-mark">R</span></div>
+<div class="brand-logo"><img src="data:image/jpeg;base64,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" alt="RESO logo" decoding="sync"></div>
 <div class="brand-info"><strong>RESO Haircut</strong></div>
 </a>
 <nav class="nav">
@@ -469,7 +469,7 @@ button,a{touch-action:manipulation}
 <div class="hero-image">
 <div class="image-placeholder">RESO</div>
 <div class="image-overlay"></div>
-<div class="slot-card"><span class="slot-label">Slot terdekat</span><strong>Hari ini · 18.00</strong><span class="slot-arrow">↗</span></div>
+<div class="slot-card"><span class="slot-label">Slot terdekat</span><strong id="nearestSlotHero">Memuat...</strong><span class="slot-arrow">↗</span></div>
 </div>
 <div class="vertical-text">RESO HAIRCUT · INDRAMAYU ·</div>
 </div>
@@ -735,9 +735,40 @@ async function loadSiteSettings(){
     renderBookingCapsters();
   }catch(e){console.error("RESO settings:",e)}
 }
-const dp=document.getElementById("datePicker"),tg=document.getElementById("timeGrid"),ml=document.getElementById("bookingMonth"),now=new Date();now.setHours(0,0,0,0);
-const dates=[...Array(21)].map((_,i)=>{let d=new Date(now);d.setDate(now.getDate()+i);return d}),mn=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"],dn=["Min","Sen","Sel","Rab","Kam","Jum","Sab"],lk=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-function rd(){ml.textContent=(state.date?new Date(state.date+"T00:00:00"):dates[0]).toLocaleString("id-ID",{month:"long",year:"numeric"}).toUpperCase();dp.innerHTML=dates.map((d,i)=>`<button class="date-option ${state.date===lk(d)?"active":""}" data-date="${lk(d)}"><span class="day">${i?"": "Hari ini"}</span><strong>${d.getDate()}</strong><small>${mn[d.getMonth()].slice(0,3)}</small></button>`).join("");dp.querySelectorAll("button").forEach(b=>b.onclick=()=>{state.date=b.dataset.date;state.time=null;rd();loadTimes()})}
+const dp=document.getElementById("datePicker"),tg=document.getElementById("timeGrid"),ml=document.getElementById("bookingMonth"),nearestSlotHero=document.getElementById("nearestSlotHero");
+const BOOKING_OPEN_HOUR=10, BOOKING_CLOSE_HOUR=22;
+const mn=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"],dn=["Min","Sen","Sel","Rab","Kam","Jum","Sab"],lk=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+let liveTodayStart=new Date(); liveTodayStart.setHours(0,0,0,0);
+let dates=[...Array(21)].map((_,i)=>{let d=new Date(liveTodayStart);d.setDate(liveTodayStart.getDate()+i);return d});
+function nearestBookingDateTime(){
+  const now=new Date();
+  const todayKey=lk(now);
+  let hour;
+  if(now.getHours()<BOOKING_OPEN_HOUR) hour=BOOKING_OPEN_HOUR;
+  else if(now.getHours()>=BOOKING_CLOSE_HOUR-1) {
+    const d=new Date(now); d.setDate(d.getDate()+1); d.setHours(BOOKING_OPEN_HOUR,0,0,0);
+    return {date:lk(d),time:`${String(BOOKING_OPEN_HOUR).padStart(2,"0")}:00`};
+  } else hour=now.getHours()+1;
+  return {date:todayKey,time:`${String(hour).padStart(2,"0")}:00`};
+}
+function updateNearestSlotHero(){
+  if(!nearestSlotHero)return;
+  const n=nearestBookingDateTime(), d=new Date(n.date+"T00:00:00");
+  const isToday=n.date===lk(new Date());
+  nearestSlotHero.textContent=(isToday?"Hari ini":"Besok")+" · "+n.time.replace(":",".");
+}
+function refreshLiveDates(){
+  const now=new Date(), key=lk(now);
+  const firstKey=lk(dates[0]);
+  if(firstKey!==key){
+    liveTodayStart=new Date(now); liveTodayStart.setHours(0,0,0,0);
+    dates=[...Array(21)].map((_,i)=>{let d=new Date(liveTodayStart);d.setDate(liveTodayStart.getDate()+i);return d});
+    if(!state.date || state.date<key) state.date=key;
+    rd();
+  }
+  updateNearestSlotHero();
+}
+function rd(){ml.textContent=(state.date?new Date(state.date+"T00:00:00"):dates[0]).toLocaleString("id-ID",{month:"long",year:"numeric"}).toUpperCase();dp.innerHTML=dates.map((d,i)=>`<button class="date-option ${state.date===lk(d)?"active":""}" data-date="${lk(d)}"><span class="day">${i===0?"Hari ini":""}</span><strong>${d.getDate()}</strong><small>${mn[d.getMonth()].slice(0,3)}</small></button>`).join("");dp.querySelectorAll("button").forEach(b=>b.onclick=()=>{state.date=b.dataset.date;state.time=null;rd();loadTimes()});updateNearestSlotHero()}
 function rt(data){
   const list=Array.isArray(data)?data:[];
   tg.innerHTML=list.map(x=>`<button class="time-option ${state.time===x.time?"active":""} ${x.available===false?"booked":""}" ${x.available===false?"disabled":""} data-time="${x.time}">${String(x.time||"").replace(":","." )}</button>`).join("");
@@ -755,20 +786,19 @@ async function loadTimes(){
     let times=Array.isArray(r)?r:(Array.isArray(r?.times)?r.times:[]);
     if(!times.length) throw new Error("Server tidak mengembalikan daftar jam.");
 
-    // Untuk tanggal hari ini, jangan tampilkan jam yang sudah lewat.
-    // Booking dimulai dari jam penuh berikutnya agar, misalnya, jam 12:xx
-    // langsung menampilkan slot terdekat mulai pukul 13.00.
+    // Hari ini: tampilkan mulai jam penuh berikutnya berdasarkan live time.
+    // Contoh sekarang 12:xx -> pilihan pertama 13.00.
     const todayKey=lk(new Date());
     if(state.date===todayKey){
       const nowTime=new Date();
-      const nextHour=nowTime.getMinutes()===0 && nowTime.getSeconds()===0
-        ? nowTime.getHours()+1
+      const nextHour=nowTime.getHours()<BOOKING_OPEN_HOUR
+        ? BOOKING_OPEN_HOUR
         : nowTime.getHours()+1;
       times=times.filter(x=>{
         const m=String(x.time||"").match(/^(\d{1,2})(?::|\.)(\d{2})$/);
         if(!m) return true;
-        const h=Number(m[1]);
-        return h>=nextHour;
+        const h=Number(m[1]), min=Number(m[2]);
+        return (h*60+min)>=(nextHour*60);
       });
     }
 
@@ -780,6 +810,9 @@ async function loadTimes(){
 }
 state.date=lk(dates[0]);
 rd();
+updateNearestSlotHero();
+setInterval(refreshLiveDates,30000);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible") refreshLiveDates();});
 function open(pref){state.services=[];state.service=null;state.price=null;state.duration=null;state.promoCode="";state.promoDiscount=0;state.promoMessage="";document.getElementById("promoCode").value="";document.getElementById("promoMessage").textContent="";if(pref){for(const[c,l]of Object.entries(services)){let f=l.find(x=>x[0]===pref);if(f){state.category=c;if(!state.services.some(s=>s.name===f[0]))state.services.push({name:f[0],duration:f[1],price:f[2],category:c});break}}syncSelected()}rs();modal.classList.add("active"); modal.setAttribute("aria-hidden","false");document.body.classList.add("modal-open");go(1)}
 function hide(){modal.classList.remove("active"); modal.setAttribute("aria-hidden","true");document.body.classList.remove("modal-open")}
 function go(n){steps.forEach(x=>x.classList.toggle("active",+x.dataset.step===n));stepNo.textContent=String(n).padStart(2,"0");progress.style.width=n*20+"%";document.getElementById("bookingBack").disabled=n===1;document.getElementById("bookingNext").innerHTML=n===5?"Konfirmasi Booking <span>✓</span>":"Lanjut <span>→</span>"}

@@ -18,7 +18,10 @@ function doGet(e) {
   try {
     const api = String(params.api || '').trim();
     if (api === 'getBookings') {
-      return jsonOutput_({ok:true, data:getBookings()});
+      return jsonOutput_({ok:true, data:getBookings(params.nocache)});
+    }
+    if (api === 'getDashboardData') {
+      return jsonOutput_({ok:true, data:getDashboardData(params.nocache)});
     }
     if (api === 'getClientBookingData') {
       return jsonOutput_({ok:true, data:getClientBookingData(String(params.date || ''), String(params.barber || ''))});
@@ -47,7 +50,10 @@ function doPost(e) {
 
     switch (action) {
       case 'getBookings':
-        result = getBookings();
+        result = getBookings(p.nocache);
+        break;
+      case 'getDashboardData':
+        result = getDashboardData(p.nocache);
         break;
       case 'getClientBookingData':
         result = getClientBookingData(String(p.date || ''), String(p.barber || ''));
@@ -98,6 +104,9 @@ function doPost(e) {
         throw new Error('Action tidak dikenali: ' + action);
     }
 
+    if (!['getBookings','getDashboardData','getSettings','getBookingMonths','getClientBookingData','validatePromo'].includes(action)) {
+      clearDashboardCache_();
+    }
     return jsonOutput_({ok:true, data:result});
   } catch (err) {
     return jsonOutput_({ok:false, error:err.message || String(err)});
@@ -303,14 +312,16 @@ function getBookingMonths() {
   });
 }
 
-function getBookings() {
-  var __cache = CacheService.getScriptCache();
-  var __cacheKey = _bookingCacheKey_(typeof month !== "undefined" ? month : "");
-  var __cached = __cache.get(__cacheKey);
-  if (__cached) {
-    try { return JSON.parse(__cached); } catch(__e) {}
+function getBookings(forceRefresh) {
+  const cache = CacheService.getScriptCache();
+  const key = _bookingCacheKey_('ALL');
+  const force = !!forceRefresh;
+  if (!force) {
+    const cached = cache.get(key);
+    if (cached) {
+      try { return JSON.parse(cached); } catch (e) {}
+    }
   }
-
   const sheets = getAllBookingSheets_();
   const byId = new Map();
   sheets.forEach(sh => {
@@ -323,9 +334,34 @@ function getBookings() {
       });
     }
   });
-  return Array.from(byId.values()).sort((a,b) =>
+  const result = Array.from(byId.values()).sort((a,b) =>
     String(b.date+' '+b.time).localeCompare(String(a.date+' '+a.time))
   );
+  try { cache.put(key, JSON.stringify(result), 3); } catch (e) {}
+  return result;
+}
+
+function getDashboardData(forceRefresh) {
+  const cache = CacheService.getScriptCache();
+  const key = 'DASHBOARD_DATA_V2';
+  const force = !!forceRefresh;
+  if (!force) {
+    const cached = cache.get(key);
+    if (cached) {
+      try { return JSON.parse(cached); } catch (e) {}
+    }
+  }
+  const result = {
+    bookings: getBookings(force),
+    settings: getSettings(),
+    bookingMonths: getBookingMonths()
+  };
+  try { cache.put(key, JSON.stringify(result), 3); } catch (e) {}
+  return result;
+}
+
+function clearDashboardCache_() {
+  try { CacheService.getScriptCache().removeAll([_bookingCacheKey_('ALL'), 'DASHBOARD_DATA_V2']); } catch (e) {}
 }
 
 function getClientBookingData(date, barber) {
