@@ -8,6 +8,11 @@ const DEFAULT_BARBERS = ['Rezky', 'Iqbal'];
 const CAPSTER_SHEET = 'Capsters';
 const PROMO_SHEET = 'Promos';
 
+
+function _bookingCacheKey_(month){
+  return "BOOKINGS_" + String(month||"ALL").replace(/[^0-9A-Za-z_-]/g,"_");
+}
+
 function doGet(e) {
   const params = (e && e.parameter) || {};
   try {
@@ -299,6 +304,13 @@ function getBookingMonths() {
 }
 
 function getBookings() {
+  var __cache = CacheService.getScriptCache();
+  var __cacheKey = _bookingCacheKey_(typeof month !== "undefined" ? month : "");
+  var __cached = __cache.get(__cacheKey);
+  if (__cached) {
+    try { return JSON.parse(__cached); } catch(__e) {}
+  }
+
   const sheets = getAllBookingSheets_();
   const byId = new Map();
   sheets.forEach(sh => {
