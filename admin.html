@@ -32,6 +32,20 @@
 .toast{position:fixed;right:20px;bottom:20px;background:var(--dark);color:#fff;padding:14px 17px;font-size:10px;opacity:0;transform:translateY(10px);transition:.25s;z-index:20}
 .edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.edit-field{display:grid;gap:6px}.edit-field.full{grid-column:1/-1}.edit-field label{font:8px var(--mono);text-transform:uppercase;color:var(--muted);letter-spacing:.06em}.edit-field input,.edit-field select,.edit-field textarea{width:100%;border:1px solid var(--border);background:transparent;padding:11px 12px;outline:none;font-size:10px}.edit-field textarea{min-height:86px;resize:vertical}.edit-field input:focus,.edit-field select:focus,.edit-field textarea:focus{border-color:var(--dark)}.edit-readonly{background:#e7e4dd!important;color:var(--muted)}.edit-help{font:8px var(--mono);line-height:1.6;color:var(--muted);margin:-5px 0 8px}.edit-total{padding:13px 14px;background:#e8e5de;border:1px solid var(--border);display:flex;justify-content:space-between;gap:15px;align-items:center}.edit-total strong{font-size:17px}.edit-error{min-height:16px;color:var(--red);font:8px var(--mono);text-transform:uppercase}.edit-footer{justify-content:flex-end}
 @media(max-width:620px){.edit-grid{grid-template-columns:1fr}.edit-field.full{grid-column:auto}}
+
+.capster-panel-trigger{cursor:pointer;user-select:none}
+.capster-panel-trigger:hover{background:#e8e5de}
+.capster-panel-trigger h2:after{content:"  →";font-size:11px;opacity:.45}
+.capster-popup-list{display:grid;border:1px solid var(--border);margin-top:4px}
+.capster-popup-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 14px;border-bottom:1px solid var(--border)}
+.capster-popup-row:last-child{border-bottom:0}
+.capster-popup-name{display:flex;align-items:center;gap:10px;min-width:0}
+.capster-popup-name strong{font-size:13px}
+.capster-popup-name small{display:block;font:8px var(--mono);color:var(--muted);margin-top:3px}
+.capster-popup-row .status-control{display:flex;align-items:center;gap:9px;flex:0 0 auto}
+.capster-popup-row .status-control .badge-on,.capster-popup-row .status-control .badge-off{min-width:29px;text-align:center}
+.capster-popup-note{font:8px var(--mono);line-height:1.6;color:var(--muted);margin-top:10px}
+
 .toast.show{opacity:1;transform:none}
 @media(max-width:1000px){.grid{grid-template-columns:1fr}.booking{grid-template-columns:95px 1fr 120px 75px}}
 @media(max-width:720px){.wrap{width:calc(100% - 24px)}.topbar{height:68px}.top-actions .btn:first-child{display:none}.stats{grid-template-columns:1fr 1fr}.stat:nth-child(2){border-right:0}.stat{border-bottom:1px solid var(--border)}.stat:nth-child(3),.stat:nth-child(4){border-bottom:0}.booking{grid-template-columns:1fr auto;gap:10px}.datebox{grid-row:1 / span 2}.barber{grid-column:2}.row-actions{grid-column:2}.times{grid-template-columns:repeat(3,1fr)}.head{align-items:start;flex-direction:column}}
@@ -110,7 +124,7 @@
 
 <section class="settings-grid">
   <section class="panel">
-    <div class="panel-head"><h2>Capster</h2><small>STATUS BOOKING</small></div>
+    <div class="panel-head capster-panel-trigger" id="openCapsterPopup" title="Kelola status capster"><h2>Capster</h2><small>STATUS BOOKING · KLIK UNTUK ATUR</small></div>
     <div class="setting-form">
       <div class="form-grid" style="grid-template-columns:1fr auto"><input id="newCapsterName" placeholder="Nama capster baru"><button class="btn dark" id="addCapster">+ Tambah</button></div>
     </div>
@@ -171,6 +185,24 @@
     <div class="modal-footer"><button class="btn" id="cancelModal">Batal</button><button class="btn dark" id="saveReschedule">Simpan Reschedule <span>→</span></button></div>
   </div>
 </div>
+
+<div class="modal" id="capsterModal">
+  <div class="modal-card" style="width:min(520px,100%);">
+    <div class="modal-top">
+      <div>
+        <span class="eyebrow">CAPSTER</span>
+        <h2>Atur<br>capster.</h2>
+      </div>
+      <button class="close" id="closeCapsterModal" type="button">×</button>
+    </div>
+    <div class="capster-popup-list" id="capsterPopupList"></div>
+    <div class="capster-popup-note">ON = capster muncul dan bisa dipilih customer. OFF = capster disembunyikan dari halaman booking. Rezky otomatis dikenakan tambahan Rp5.000.</div>
+    <div class="modal-footer" style="justify-content:flex-end">
+      <button class="btn dark" id="doneCapsterModal" type="button">Selesai</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -221,6 +253,7 @@ async function load(silent=false){
       if(!bookingMonths.length) monthFilter.innerHTML=`<option value="${esc(selectedMonth)}">${esc(selectedMonth)}</option>`;
       monthFilter.value=selectedMonth;
       renderSettings(); render();
+      if(document.getElementById("capsterModal")?.classList.contains("show")) renderCapsterPopup();
       lastDataSignature=signature;
     }
     lastRefreshAt=Date.now();
@@ -251,6 +284,53 @@ function renderSettings(){
     <div class="setting-row"><div class="setting-main"><strong class="promo-code">${esc(p.code)}</strong><small>${p.discountType==="percent"?p.discountValue+"%":"Rp"+Number(p.discountValue).toLocaleString("id-ID")} · Terpakai ${p.used}/${p.maxUses} · Sisa ${p.remaining}</small></div>
     <div style="display:flex;align-items:center;gap:7px"><span class="${p.active&&p.remaining>0?'badge-on':'badge-off'}">${p.active&&p.remaining>0?'ON':'OFF'}</span><label class="switch"><input type="checkbox" ${p.active?"checked":""} onchange="togglePromoAdmin('${esc(p.code).replace(/'/g,"\\'")}',this.checked)"><i></i></label><button class="btn" onclick="deletePromoAdmin('${esc(p.code).replace(/'/g,"\\'")}')">×</button></div></div>`).join(""):'<div class="setting-empty">Belum ada kode promo.</div>';
 }
+
+function renderCapsterPopup(){
+  const box=document.getElementById("capsterPopupList");
+  if(!box)return;
+  const list=settings.capsters||[];
+  box.innerHTML=list.length?list.map(c=>{
+    const rezky=String(c.name||"").trim().toLowerCase()==="rezky";
+    return `<div class="capster-popup-row">
+      <div class="capster-popup-name">
+        <div><strong>${esc(c.name)}</strong><small>${c.active?"Aktif · tampil di booking":"Nonaktif · disembunyikan"}${rezky?" · +Rp5.000":""}</small></div>
+      </div>
+      <div class="status-control">
+        <span class="${c.active?'badge-on':'badge-off'}">${c.active?'ON':'OFF'}</span>
+        <label class="switch" title="${c.active?'Matikan capster':'Aktifkan capster'}">
+          <input type="checkbox" ${c.active?"checked":""} data-capster="${esc(c.name)}">
+          <i></i>
+        </label>
+      </div>
+    </div>`;
+  }).join(""):'<div class="setting-empty">Belum ada capster.</div>';
+
+  box.querySelectorAll('input[data-capster]').forEach(input=>{
+    input.addEventListener("change",async()=>{
+      const name=input.getAttribute("data-capster");
+      input.disabled=true;
+      try{
+        settings=await api("toggleCapster",{name,active:input.checked});
+        renderSettings();
+        renderCapsterPopup();
+        render();
+        toast((input.checked?"Capster diaktifkan: ":"Capster dimatikan: ")+name);
+      }catch(e){
+        input.checked=!input.checked;
+        input.disabled=false;
+        toast(e.message||"Gagal mengubah status capster");
+      }
+    });
+  });
+}
+function openCapsterPopup(){
+  renderCapsterPopup();
+  document.getElementById("capsterModal").classList.add("show");
+}
+function closeCapsterPopup(){
+  document.getElementById("capsterModal").classList.remove("show");
+}
+
 async function refreshSettings(){settings=await api("getSettings");renderSettings();render();}
 async function toggleCapsterAdmin(name,active){try{settings=await api("toggleCapster",{name,active});renderSettings();render();toast((active?"Capster diaktifkan: ":"Capster dimatikan: ")+name)}catch(e){toast(e.message)}}
 async function togglePromoAdmin(code,active){try{settings=await api("togglePromo",{code,active});renderSettings();toast("Status promo diperbarui")}catch(e){toast(e.message)}}
