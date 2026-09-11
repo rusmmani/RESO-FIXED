@@ -69,7 +69,7 @@
 .capster-popup-avatar img{width:100%;height:100%;object-fit:cover;display:block}
 .top-capster-btn{display:inline-flex;align-items:center;gap:7px}
 @media(max-width:620px){.manual-booking-card{padding:23px 17px}}
-</style>
+@media(max-width:800px){.filters{display:grid!important;grid-template-columns:1fr 1fr}.filters #search{grid-column:1/-1}.filters #sortNearestBtn{grid-column:1/-1;width:100%}}</style>
 </head>
 <body>
 <div class="login-screen" id="loginScreen">
@@ -114,7 +114,7 @@
       <div class="filters">
         <input id="search" placeholder="Cari nama, WhatsApp, layanan...">
         <select id="statusFilter"><option value="all">Semua status</option><option value="confirmed">Confirmed</option><option value="rescheduled">Rescheduled</option><option value="cancelled">Cancelled</option><option value="completed">Completed</option></select>
-        <select id="barberFilter"><option value="all">Semua capster</option></select>
+        <select id="barberFilter"><option value="all">Semua capster</option></select><button class="btn" id="sortNearestBtn" type="button" title="Urutkan booking dari tanggal dan jam terdekat">↕ Jam terdekat</button>
       </div>
       <div class="booking-list" id="bookingList"></div>
     </section>
@@ -276,7 +276,7 @@ async function api(action,payload={}){
 }
 let settings={capsters:[],promos:[]};
 const G=null, monthFilter=document.getElementById("monthFilter"), list=document.getElementById("bookingList"),search=document.getElementById("search"),status=document.getElementById("statusFilter"),barber=document.getElementById("barberFilter"),mn=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"],dn=["Min","Sen","Sel","Rab","Kam","Jum","Sab"],today=new Date();
-today.setHours(0,0,0,0);let bookings=[],bookingMonths=[],selectedMonth="",current=null,selDate=null,selTime=null,view=new Date(today.getFullYear(),today.getMonth(),1);
+today.setHours(0,0,0,0);let bookings=[],bookingMonths=[],selectedMonth="",current=null,selDate=null,selTime=null,view=new Date(today.getFullYear(),today.getMonth(),1),sortNearest=false;
 const k=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`,dt=s=>{let d=new Date(s+"T00:00:00");return`${dn[d.getDay()]}, ${d.getDate()} ${mn[d.getMonth()]} ${d.getFullYear()}`},esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 let isRefreshing=false,lastDataSignature="",lastRefreshAt=0;
 const DASHBOARD_CACHE_KEY="reso_dashboard_cache_v2";
@@ -338,7 +338,7 @@ function renderSettings(){
   document.getElementById("capsterSettingsList").innerHTML=settings.capsters.length?settings.capsters.map(c=>`
     <div class="setting-row"><div class="setting-main"><strong>${esc(c.name)}</strong><small>${c.active?"ON — bisa dipilih customer":"OFF — tidak muncul di booking"}${String(c.name).trim().toLowerCase()==="rezky"?" · +Rp5.000":""}</small></div>
     <div style="display:flex;align-items:center;gap:8px"><span class="${c.active?'badge-on':'badge-off'}">${c.active?'ON':'OFF'}</span><label class="switch"><input type="checkbox" ${c.active?"checked":""} onchange="toggleCapsterAdmin('${esc(c.name).replace(/'/g,"\\'")}',this.checked)"><i></i></label></div></div>`).join(""):'<div class="setting-empty">Belum ada capster.</div>';
-  document.getElementById("promoSettingsList").innerHTML=settings.promos.length?settings.promos.map(p=>`
+  const visiblePromos=(settings.promos||[]).filter(p=>Number(p.remaining||0)>0); document.getElementById("promoSettingsList").innerHTML=visiblePromos.length?visiblePromos.map(p=>`
     <div class="setting-row"><div class="setting-main"><strong class="promo-code">${esc(p.code)}</strong><small>${p.discountType==="percent"?p.discountValue+"%":"Rp"+Number(p.discountValue).toLocaleString("id-ID")} · Terpakai ${p.used}/${p.maxUses} · Sisa ${p.remaining}</small></div>
     <div style="display:flex;align-items:center;gap:7px"><span class="${p.active&&p.remaining>0?'badge-on':'badge-off'}">${p.active&&p.remaining>0?'ON':'OFF'}</span><label class="switch"><input type="checkbox" ${p.active?"checked":""} onchange="togglePromoAdmin('${esc(p.code).replace(/'/g,"\\'")}',this.checked)"><i></i></label><button class="btn" onclick="deletePromoAdmin('${esc(p.code).replace(/'/g,"\\'")}')">×</button></div></div>`).join(""):'<div class="setting-empty">Belum ada kode promo.</div>';
 }
@@ -502,10 +502,12 @@ function showBookingsFast(){
   });
 }
 
+document.getElementById("sortNearestBtn").addEventListener("click",()=>{ sortNearest=!sortNearest; const btn=document.getElementById("sortNearestBtn"); btn.textContent=sortNearest?"↕ Urutan terdekat":"↕ Jam terdekat"; btn.classList.toggle("dark",sortNearest); render(); });
+
 function render(){
   const q=search.value.toLowerCase(),sf=status.value,bf=barber.value,mk=selectedMonthKey_();
   const monthBookings=bookings.filter(b=>monthKey_(b.date)===mk);
-  const r=monthBookings.filter(b=>(!q||`${b.name} ${b.wa} ${b.service} ${b.id}`.toLowerCase().includes(q))&&(sf==="all"||b.status.toLowerCase()===sf)&&(bf==="all"||b.barber===bf));
+  let r=monthBookings.filter(b=>(!q||`${b.name} ${b.wa} ${b.service} ${b.id}`.toLowerCase().includes(q))&&(sf==="all"||b.status.toLowerCase()===sf)&&(bf==="all"||b.barber===bf)); if(sortNearest){ r.sort((a,b)=>{ const ta=new Date(`${a.date||"9999-12-31"}T${a.time||"23:59"}:00`).getTime(); const tb=new Date(`${b.date||"9999-12-31"}T${b.time||"23:59"}:00`).getTime(); return ta-tb; }); }
   list.innerHTML=r.length?r.map(b=>`<article class="booking"><div class="datebox"><strong>${b.time}</strong><small>${dt(b.date)}</small></div><div class="client"><strong>${esc(b.name)}</strong><small>${esc(b.service)} · ${esc(b.wa)}</small></div><div class="barber"><strong>${esc(b.barber)}</strong><small>${esc(b.note)}</small><span class="status ${b.status.toLowerCase()}">${b.status}</span></div><div class="row-actions"><button class="iconbtn" title="Edit data booking" onclick="editBooking('${b.id}')">✎</button><button class="iconbtn" title="Kirim bukti pesanan via WhatsApp" onclick="sendOrderProof('${b.id}')">📤</button><button class="iconbtn" title="Ingatkan customer via WhatsApp" onclick="remindCustomer('${b.id}')">🔔</button><button class="iconbtn" title="Reschedule" onclick="openRes('${b.id}')">↻</button><button class="iconbtn" title="Selesaikan booking" onclick="done('${b.id}')">✓</button><button class="iconbtn cancel-btn" title="Hapus pesanan" onclick="cancel('${b.id}')">×</button></div></article>`).join(""):`<div class="empty">Tidak ada booking untuk ${esc(selectedMonth)}.</div>`;
   const active=monthBookings.filter(b=>b.status!=="Cancelled");
   const revenue=active.reduce((sum,b)=>sum+(Number(b.totalPrice)>=0?Number(b.totalPrice):Number(b.price||0)),0);
