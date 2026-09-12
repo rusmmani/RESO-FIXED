@@ -337,7 +337,7 @@ function getBookings(forceRefresh) {
   const result = Array.from(byId.values()).sort((a,b) =>
     String(b.date+' '+b.time).localeCompare(String(a.date+' '+a.time))
   );
-  try { cache.put(key, JSON.stringify(result), 3); } catch (e) {}
+  try { cache.put(key, JSON.stringify(result), 1); } catch (e) {}
   return result;
 }
 
@@ -356,7 +356,7 @@ function getDashboardData(forceRefresh) {
     settings: getSettings(),
     bookingMonths: getBookingMonths()
   };
-  try { cache.put(key, JSON.stringify(result), 3); } catch (e) {}
+  try { cache.put(key, JSON.stringify(result), 1); } catch (e) {}
   return result;
 }
 

@@ -49,7 +49,15 @@
 .toast.show{opacity:1;transform:none}
 @media(max-width:1000px){.grid{grid-template-columns:1fr}.booking{grid-template-columns:95px 1fr 120px 75px}}
 @media(max-width:720px){.wrap{width:calc(100% - 24px)}.topbar{height:68px}.top-actions .btn:first-child{display:none}.stats{grid-template-columns:1fr 1fr}.stat:nth-child(2){border-right:0}.stat{border-bottom:1px solid var(--border)}.stat:nth-child(3),.stat:nth-child(4){border-bottom:0}.booking{grid-template-columns:1fr auto;gap:10px}.datebox{grid-row:1 / span 2}.barber{grid-column:2}.row-actions{grid-column:2}.times{grid-template-columns:repeat(3,1fr)}.head{align-items:start;flex-direction:column}}
-@media(max-width:480px){.page{padding-top:30px}.panel-head{padding:17px}.filters{padding:12px 17px}.booking{padding:16px 17px}.booking-list .booking .status{display:none}.modal-card{padding:23px 17px}.date-grid{gap:3px}.date-cell{min-height:48px}.stats{margin-bottom:20px}.stat strong{font-size:25px}}
+@media(max-width:480px){.page{padding-top:30px}.panel-head{padding:17px}.filters{padding:12px 17px}.booking{padding:16px 17px}.booking-list .booking .status{display:none}.modal-card{padding:23px 17px}.date-grid{gap:3px}.date-cell{min-height:48px}.stats{margin-bottom:20px}.stat strong{font-size:25px}} 
+/* Responsive dashboard improvements */
+.stats{grid-template-columns:repeat(6,1fr)}
+.stat{min-width:0}
+.stat strong{font-size:clamp(20px,2.2vw,30px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:1180px){.stats{grid-template-columns:repeat(3,1fr)}.stat:nth-child(3){border-right:0}.stat:nth-child(4),.stat:nth-child(5),.stat:nth-child(6){border-top:1px solid var(--border)}}
+@media(max-width:760px){.topbar{height:auto;min-height:68px;padding:10px 0;align-items:flex-start}.top-actions{flex-wrap:wrap;justify-content:flex-end}.top-actions .btn{padding:9px 11px}.stats{grid-template-columns:1fr 1fr}.stat{border-right:1px solid var(--border)!important;border-bottom:1px solid var(--border)}.stat:nth-child(2n){border-right:0!important}.stat:nth-last-child(-n+2){border-bottom:0}.filters{display:grid;grid-template-columns:1fr 1fr}.filters input{grid-column:1/-1;min-width:0}.filters .btn{width:100%}.booking{grid-template-columns:minmax(70px,90px) 1fr;}.barber,.row-actions{grid-column:2}.row-actions{justify-content:flex-start}}
+@media(max-width:480px){.topbar{gap:8px}.brand small{font-size:7px}.top-actions{gap:5px}.top-actions .btn{font-size:9px}.top-actions .top-capster-btn{display:none}.stats{gap:0}.stat{padding:15px 13px}.stat strong{font-size:20px}.filters{grid-template-columns:1fr}.filters input{grid-column:auto}.booking{grid-template-columns:1fr}.datebox,.barber,.row-actions{grid-column:auto;grid-row:auto}.datebox{display:flex;justify-content:space-between;align-items:center}.row-actions{display:flex;flex-wrap:wrap}.iconbtn{min-width:36px;min-height:36px}}
+
  .booking-block{width:100%;border:0;text-align:left}.booking-block span{float:right}.booking-block small{display:block;font:7px var(--mono);opacity:.7;margin-top:3px}
 
 .login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}.login-card{width:min(420px,100%);border:1px solid var(--border);background:var(--bg);padding:34px;box-shadow:0 20px 60px rgba(0,0,0,.08)}.login-logo img{width:100%;height:100%;object-fit:cover}.login-logo{width:52px;height:52px;background:var(--dark);color:#fff;display:grid;place-items:center;font-weight:800;font-size:20px;margin-bottom:22px}.login-card h1{font-size:34px;letter-spacing:-.06em;line-height:.95}.login-card p{font-size:11px;line-height:1.7;color:var(--muted);margin:10px 0 24px}.pin-wrap{position:relative}.pin-input{width:100%;border:1px solid var(--border);background:transparent;padding:14px 45px 14px 14px;outline:none;font:16px var(--mono);letter-spacing:.18em}.pin-input:focus{border-color:var(--dark)}.pin-toggle{position:absolute;right:8px;top:7px;width:36px;height:36px;border:0;background:transparent}.login-btn{width:100%;margin-top:12px}.login-error{min-height:18px;color:var(--red);font:8px var(--mono);margin-top:10px;text-transform:uppercase}.login-screen.hidden{display:none}
@@ -91,7 +99,7 @@
 <header class="topbar">
   <div class="wrap" style="display:flex;align-items:center;justify-content:space-between;width:100%">
     <div class="brand"><div class="logo"><img src="data:image/jpeg;base64,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" alt="RESO logo" decoding="sync"></div><div><strong>RESO Haircut</strong><small>ADMIN DASHBOARD · INDRAMAYU</small></div></div>
-    <div class="top-actions"><button class="btn" id="refreshDashboard" type="button" title="Refresh data booking">↻ Refresh</button><button class="btn top-capster-btn" id="topCapster" type="button">✂ Capster</button><button class="btn" id="resetDemo">Reset Demo</button><button class="btn dark" id="newBooking">+ Booking Baru</button></div>
+    <div class="top-actions"><button class="btn" id="refreshDashboard" type="button" title="Refresh data booking">↻ Refresh</button><button class="btn top-capster-btn" id="topCapster" type="button">✂ Capster</button><button class="btn dark" id="newBooking">+ Booking Baru</button></div>
   </div>
 </header>
 
@@ -104,7 +112,9 @@
   <section class="stats">
     <div class="stat"><strong id="statToday">0</strong><span>Booking hari ini</span></div>
     <div class="stat"><strong id="statUpcoming">0</strong><span>Akan datang</span></div>
-    <div class="stat"><strong id="statRevenue">Rp0</strong><span>Estimasi omzet</span></div>
+    <div class="stat"><strong id="statMonthlyEstimate">Rp0</strong><span>Estimasi omzet / bulan</span></div>
+    <div class="stat"><strong id="statDailyEstimate">Rp0</strong><span>Estimasi omzet / hari</span></div>
+    <div class="stat"><strong id="statCompletedRevenue">Rp0</strong><span>Omzet completed</span></div>
     <div class="stat"><strong id="statRescheduled">0</strong><span>Reschedule</span></div>
   </section>
 
@@ -254,7 +264,7 @@ function isLoggedIn(){return sessionStorage.getItem(AUTH_KEY)==="1"}
 function showDashboard(){loginScreen.classList.add("hidden");document.body.style.overflow=""}
 function showLogin(){loginScreen.classList.remove("hidden");document.body.style.overflow="hidden";setTimeout(()=>pinInput.focus(),50)}
 if(isLoggedIn())showDashboard();else showLogin();
-loginForm.addEventListener("submit",e=>{e.preventDefault();if(pinInput.value===ADMIN_PIN){sessionStorage.setItem(AUTH_KEY,"1");loginError.textContent="";pinInput.value="";showDashboard();load();}else{loginError.textContent="PIN salah. Silakan coba lagi.";pinInput.value="";pinInput.focus()}});
+loginForm.addEventListener("submit",e=>{e.preventDefault();if(pinInput.value===ADMIN_PIN){sessionStorage.setItem(AUTH_KEY,"1");loginError.textContent="";pinInput.value="";showDashboard();restoreDashboardCache_();requestAnimationFrame(()=>load(true,true));}else{loginError.textContent="PIN salah. Silakan coba lagi.";pinInput.value="";pinInput.focus()}});
 pinToggle.addEventListener("click",()=>{const visible=pinInput.type==="text";pinInput.type=visible?"password":"text";pinToggle.textContent=visible?"◉":"◌"});
 
 async function api(action,payload={}){
@@ -276,7 +286,7 @@ async function api(action,payload={}){
 }
 let settings={capsters:[],promos:[]};
 const G=null, monthFilter=document.getElementById("monthFilter"), list=document.getElementById("bookingList"),search=document.getElementById("search"),status=document.getElementById("statusFilter"),barber=document.getElementById("barberFilter"),mn=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"],dn=["Min","Sen","Sel","Rab","Kam","Jum","Sab"],today=new Date();
-today.setHours(0,0,0,0);let bookings=[],bookingMonths=[],selectedMonth="",current=null,selDate=null,selTime=null,view=new Date(today.getFullYear(),today.getMonth(),1),sortNearest=false;
+today.setHours(0,0,0,0);let bookings=[],bookingMonths=[],selectedMonth="",current=null,selDate=null,selTime=null,view=new Date(today.getFullYear(),today.getMonth(),1),sortNearest=false,todayOnly=false;
 const k=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`,dt=s=>{let d=new Date(s+"T00:00:00");return`${dn[d.getDay()]}, ${d.getDate()} ${mn[d.getMonth()]} ${d.getFullYear()}`},esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 let isRefreshing=false,lastDataSignature="",lastRefreshAt=0;
 const DASHBOARD_CACHE_KEY="reso_dashboard_cache_v2";
@@ -338,6 +348,7 @@ function renderSettings(){
   document.getElementById("capsterSettingsList").innerHTML=settings.capsters.length?settings.capsters.map(c=>`
     <div class="setting-row"><div class="setting-main"><strong>${esc(c.name)}</strong><small>${c.active?"ON — bisa dipilih customer":"OFF — tidak muncul di booking"}${String(c.name).trim().toLowerCase()==="rezky"?" · +Rp5.000":""}</small></div>
     <div style="display:flex;align-items:center;gap:8px"><span class="${c.active?'badge-on':'badge-off'}">${c.active?'ON':'OFF'}</span><label class="switch"><input type="checkbox" ${c.active?"checked":""} onchange="toggleCapsterAdmin('${esc(c.name).replace(/'/g,"\\'")}',this.checked)"><i></i></label></div></div>`).join(""):'<div class="setting-empty">Belum ada capster.</div>';
+  // Promo tetap tampil selama masih punya slot. Baru hilang ketika remaining = 0.
   const visiblePromos=(settings.promos||[]).filter(p=>Number(p.remaining||0)>0); document.getElementById("promoSettingsList").innerHTML=visiblePromos.length?visiblePromos.map(p=>`
     <div class="setting-row"><div class="setting-main"><strong class="promo-code">${esc(p.code)}</strong><small>${p.discountType==="percent"?p.discountValue+"%":"Rp"+Number(p.discountValue).toLocaleString("id-ID")} · Terpakai ${p.used}/${p.maxUses} · Sisa ${p.remaining}</small></div>
     <div style="display:flex;align-items:center;gap:7px"><span class="${p.active&&p.remaining>0?'badge-on':'badge-off'}">${p.active&&p.remaining>0?'ON':'OFF'}</span><label class="switch"><input type="checkbox" ${p.active?"checked":""} onchange="togglePromoAdmin('${esc(p.code).replace(/'/g,"\\'")}',this.checked)"><i></i></label><button class="btn" onclick="deletePromoAdmin('${esc(p.code).replace(/'/g,"\\'")}')">×</button></div></div>`).join(""):'<div class="setting-empty">Belum ada kode promo.</div>';
@@ -507,17 +518,51 @@ document.getElementById("sortNearestBtn").addEventListener("click",()=>{ sortNea
 function render(){
   const q=search.value.toLowerCase(),sf=status.value,bf=barber.value,mk=selectedMonthKey_();
   const monthBookings=bookings.filter(b=>monthKey_(b.date)===mk);
-  let r=monthBookings.filter(b=>(!q||`${b.name} ${b.wa} ${b.service} ${b.id}`.toLowerCase().includes(q))&&(sf==="all"||b.status.toLowerCase()===sf)&&(bf==="all"||b.barber===bf)); if(sortNearest){ r.sort((a,b)=>{ const ta=new Date(`${a.date||"9999-12-31"}T${a.time||"23:59"}:00`).getTime(); const tb=new Date(`${b.date||"9999-12-31"}T${b.time||"23:59"}:00`).getTime(); return ta-tb; }); }
-  list.innerHTML=r.length?r.map(b=>`<article class="booking"><div class="datebox"><strong>${b.time}</strong><small>${dt(b.date)}</small></div><div class="client"><strong>${esc(b.name)}</strong><small>${esc(b.service)} · ${esc(b.wa)}</small></div><div class="barber"><strong>${esc(b.barber)}</strong><small>${esc(b.note)}</small><span class="status ${b.status.toLowerCase()}">${b.status}</span></div><div class="row-actions"><button class="iconbtn" title="Edit data booking" onclick="editBooking('${b.id}')">✎</button><button class="iconbtn" title="Kirim bukti pesanan via WhatsApp" onclick="sendOrderProof('${b.id}')">📤</button><button class="iconbtn" title="Ingatkan customer via WhatsApp" onclick="remindCustomer('${b.id}')">🔔</button><button class="iconbtn" title="Reschedule" onclick="openRes('${b.id}')">↻</button><button class="iconbtn" title="Selesaikan booking" onclick="done('${b.id}')">✓</button><button class="iconbtn cancel-btn" title="Hapus pesanan" onclick="cancel('${b.id}')">×</button></div></article>`).join(""):`<div class="empty">Tidak ada booking untuk ${esc(selectedMonth)}.</div>`;
-  const active=monthBookings.filter(b=>b.status!=="Cancelled");
-  const revenue=active.reduce((sum,b)=>sum+(Number(b.totalPrice)>=0?Number(b.totalPrice):Number(b.price||0)),0);
-  document.getElementById("bookingCount").textContent=r.length+" DATA · "+selectedMonth.toUpperCase();
-  document.getElementById("statToday").textContent=active.filter(b=>b.date===k(today)).length;
+  const sourceBookings=todayOnly ? bookings.filter(b=>b.date===k(today)) : monthBookings;
+  let r=sourceBookings.filter(b=>
+    (!q||`${b.name} ${b.wa} ${b.service} ${b.id}`.toLowerCase().includes(q)) &&
+    (sf==="all"||String(b.status||"").toLowerCase()===sf) &&
+    (bf==="all"||b.barber===bf)
+  );
+  if(sortNearest){
+    r.sort((a,b)=>{
+      const ta=new Date(`${a.date||"9999-12-31"}T${a.time||"23:59"}:00`).getTime();
+      const tb=new Date(`${b.date||"9999-12-31"}T${b.time||"23:59"}:00`).getTime();
+      return ta-tb;
+    });
+  }
+
+  list.innerHTML=r.length?r.map(b=>`<article class="booking">
+    <div class="datebox"><strong>${b.time}</strong><small>${dt(b.date)}</small></div>
+    <div class="client"><strong>${esc(b.name)}</strong><small>${esc(b.service)} · ${esc(b.wa)}</small></div>
+    <div class="barber"><strong>${esc(b.barber)}</strong><small>${esc(b.note)}</small><span class="status ${String(b.status||"").toLowerCase()}">${esc(b.status)}</span></div>
+    <div class="row-actions">
+      <button class="iconbtn" title="Edit data booking" onclick="editBooking('${b.id}')">✎</button>
+      <button class="iconbtn" title="Kirim bukti pesanan via WhatsApp" onclick="sendOrderProof('${b.id}')">📤</button>
+      <button class="iconbtn" title="Ingatkan customer via WhatsApp" onclick="remindCustomer('${b.id}')">🔔</button>
+      <button class="iconbtn" title="Reschedule" onclick="openRes('${b.id}')">↻</button>
+      <button class="iconbtn" title="Selesaikan booking" onclick="done('${b.id}')">✓</button>
+      <button class="iconbtn cancel-btn" title="Hapus pesanan" onclick="cancel('${b.id}')">×</button>
+    </div>
+  </article>`).join("") :
+    `<div class="empty">${todayOnly?"Tidak ada booking hari ini.":"Tidak ada booking untuk "+esc(selectedMonth)+"."}</div>`;
+
+  const active=monthBookings.filter(b=>String(b.status||"")!=="Cancelled");
+  const completed=monthBookings.filter(b=>String(b.status||"")==="Completed");
+  const valueOf=b=>Number(b.totalPrice)>=0?Number(b.totalPrice):Number(b.price||0);
+  const monthlyRevenue=active.reduce((sum,b)=>sum+valueOf(b),0);
+  const dailyRevenue=bookings.filter(b=>b.date===k(today)&&String(b.status||"")!=="Cancelled").reduce((sum,b)=>sum+valueOf(b),0);
+  const completedRevenue=completed.reduce((sum,b)=>sum+valueOf(b),0);
+
+  document.getElementById("bookingCount").textContent=r.length+" DATA · "+(todayOnly?"HARI INI":selectedMonth.toUpperCase());
+  document.getElementById("statToday").textContent=bookings.filter(b=>b.date===k(today)&&String(b.status||"")!=="Cancelled").length;
   document.getElementById("statUpcoming").textContent=active.filter(b=>b.date>k(today)&&b.status!=="Completed").length;
-  document.getElementById("statRevenue").textContent="Rp"+revenue.toLocaleString("id-ID");
+  document.getElementById("statMonthlyEstimate").textContent=formatRupiah(monthlyRevenue);
+  document.getElementById("statDailyEstimate").textContent=formatRupiah(dailyRevenue);
+  document.getElementById("statCompletedRevenue").textContent=formatRupiah(completedRevenue);
   document.getElementById("statRescheduled").textContent=monthBookings.filter(b=>b.status==="Rescheduled").length;
-  document.getElementById("todayLabel").textContent=selectedMonth;
-  document.querySelector('.panel-head h2').textContent="Booking — "+selectedMonth;
+  document.getElementById("todayLabel").textContent=dt(k(today));
+  document.querySelector('.panel-head h2').textContent=todayOnly?"Booking — Hari Ini":"Booking — "+selectedMonth;
 }
 const editModal=document.getElementById("editModal");
 let editCurrent=null;
@@ -742,12 +787,16 @@ function remindCustomer(id){
 document.getElementById("refreshDashboard")?.addEventListener("click",()=>load(false,true));
 document.getElementById("refreshBookings")?.addEventListener("click",()=>load(false,true));
 search.oninput=render;status.onchange=render;barber.onchange=render;
-monthFilter.onchange=()=>{selectedMonth=monthFilter.value;search.value="";status.value="all";barber.value="all";render()};
+monthFilter.onchange=()=>{todayOnly=false;selectedMonth=monthFilter.value;search.value="";status.value="all";barber.value="all";render()};
 document.getElementById("quickReschedule").onclick=()=>{let b=bookings.find(x=>monthKey_(x.date)===selectedMonthKey_()&&!['Cancelled','Completed'].includes(x.status));if(b)openRes(b.id)};
-document.getElementById("quickToday").onclick=()=>{search.value="";status.value="all";barber.value="all";const rows=bookings.filter(b=>b.date===k(today)&&monthKey_(b.date)===selectedMonthKey_());list.innerHTML=rows.length?rows.map(b=>`<article class="booking"><div class="datebox"><strong>${b.time}</strong><small>${dt(b.date)}</small></div><div class="client"><strong>${esc(b.name)}</strong><small>${esc(b.service)} · ${esc(b.wa)}</small></div><div class="barber"><strong>${esc(b.barber)}</strong><small>${esc(b.note)}</small><span class="status ${b.status.toLowerCase()}">${b.status}</span></div><div class="row-actions"><button class="iconbtn" onclick="sendOrderProof('${b.id}')">📤</button><button class="iconbtn" onclick="remindCustomer('${b.id}')">🔔</button><button class="iconbtn" onclick="openRes('${b.id}')">↻</button><button class="iconbtn" onclick="done('${b.id}')">✓</button><button class="iconbtn cancel-btn" onclick="cancel('${b.id}')">×</button></div></article>`).join(""): '<div class="empty">Tidak ada booking hari ini.</div>';};
-document.getElementById("quickAll").onclick=()=>{search.value="";status.value="all";barber.value="all";render()};
+document.getElementById("quickToday").onclick=()=>{
+  todayOnly=true;
+  search.value="";status.value="all";barber.value="all";
+  render();
+};
+document.getElementById("quickAll").onclick=()=>{todayOnly=false;search.value="";status.value="all";barber.value="all";render()};
 document.getElementById("newBooking").onclick=openManualBooking;document.getElementById("resetDemo").style.display="none";
-function toast(x){let t=document.getElementById("toast");t.textContent=x;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2200)}load();
+function toast(x){let t=document.getElementById("toast");t.textContent=x;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2200)}if(isLoggedIn())load(true,false);
 </script>
 </body>
 </html>
