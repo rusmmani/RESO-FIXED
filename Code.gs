@@ -22,7 +22,7 @@ function doGet(e) {
       return jsonOutput_({ok:true, data:getBookings(params.nocache)});
     }
     if (api === 'getDashboardData') {
-      return jsonOutput_({ok:true, data:getDashboardData(params.nocache)});
+      return jsonOutput_({ok:true, data:getDashboardData(params.nocache, String(params.month || ''))});
     }
     if (api === 'getClientBookingData') {
       return jsonOutput_({ok:true, data:getClientBookingData(String(params.date || ''), String(params.barber || ''))});
@@ -54,7 +54,7 @@ function doPost(e) {
         result = getBookings(p.nocache);
         break;
       case 'getDashboardData':
-        result = getDashboardData(p.nocache);
+        result = getDashboardData(p.nocache, String(p.month || ''));
         break;
       case 'getClientBookingData':
         result = getClientBookingData(String(p.date || ''), String(p.barber || ''));
@@ -313,51 +313,94 @@ function getBookingMonths() {
   });
 }
 
-function getBookings(forceRefresh) {
+function getBookings(forceRefresh, month) {
+  // Dashboard memakai mode bulanan agar tidak perlu membaca seluruh Spreadsheet
+  // setiap kali halaman dibuka. Tanpa parameter month, perilaku lama tetap membaca semua data.
+  let force = !!forceRefresh;
+  if (forceRefresh && typeof forceRefresh === 'string' && !month) {
+    force = false;
+    month = forceRefresh;
+  }
+  month = String(month || '').trim();
+
+  const cacheMonth = month ? month.replace(/\s+/g,'_') : 'ALL';
   const cache = CacheService.getScriptCache();
-  const key = _bookingCacheKey_('ALL');
-  const force = !!forceRefresh;
+  const key = _bookingCacheKey_(cacheMonth);
   if (!force) {
     const cached = cache.get(key);
     if (cached) {
       try { return JSON.parse(cached); } catch (e) {}
     }
   }
-  const sheets = getAllBookingSheets_();
+
   const byId = new Map();
-  sheets.forEach(sh => {
-    const last = sh.getLastRow();
-    if (last >= 2) {
+
+  if (month) {
+    // Cari tab bulan secara langsung — jauh lebih cepat daripada scan semua tab.
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sh = ss.getSheetByName(month);
+    if (sh && sh.getLastRow() >= 2) {
+      const last = sh.getLastRow();
       const rows = sh.getRange(2,1,last-1,17).getValues();
       rows.filter(r => r[0]).forEach(r => {
         const obj = rowToObject_(r);
         if (obj.id) byId.set(obj.id, obj);
       });
     }
-  });
+
+    // Data lama di tab Bookings tetap ikut tampil jika tanggalnya berada
+    // pada bulan yang sedang diminta.
+    const legacy = ss.getSheetByName(SHEET_NAME);
+    if (legacy && legacy.getName() !== month && legacy.getLastRow() >= 2) {
+      const rows = legacy.getRange(2,1,legacy.getLastRow()-1,17).getValues();
+      rows.filter(r => r[0] && getMonthSheetName_(r[12]) === month).forEach(r => {
+        const obj = rowToObject_(r);
+        if (obj.id) byId.set(obj.id, obj);
+      });
+    }
+  } else {
+    const sheets = getAllBookingSheets_();
+    sheets.forEach(sh => {
+      const last = sh.getLastRow();
+      if (last >= 2) {
+        const rows = sh.getRange(2,1,last-1,17).getValues();
+        rows.filter(r => r[0]).forEach(r => {
+          const obj = rowToObject_(r);
+          if (obj.id) byId.set(obj.id, obj);
+        });
+      }
+    });
+  }
+
   const result = Array.from(byId.values()).sort((a,b) =>
     String(b.date+' '+b.time).localeCompare(String(a.date+' '+a.time))
   );
-  try { cache.put(key, JSON.stringify(result), 1); } catch (e) {}
+  try { cache.put(key, JSON.stringify(result), 3); } catch (e) {}
   return result;
 }
 
-function getDashboardData(forceRefresh) {
+function getDashboardData(forceRefresh, month) {
   const cache = CacheService.getScriptCache();
-  const key = 'DASHBOARD_DATA_V2';
+  const requestedMonth = String(month || '').trim();
+  const cacheKey = 'DASHBOARD_FAST_' + (requestedMonth || 'ALL').replace(/\s+/g,'_');
   const force = !!forceRefresh;
+
   if (!force) {
-    const cached = cache.get(key);
+    const cached = cache.get(cacheKey);
     if (cached) {
       try { return JSON.parse(cached); } catch (e) {}
     }
   }
+
+  // Satu endpoint mengembalikan semua yang dibutuhkan dashboard.
+  // Booking dibatasi ke bulan aktif sehingga pembukaan dashboard jauh lebih cepat.
   const result = {
-    bookings: getBookings(force),
+    bookings: getBookings(force, requestedMonth),
     settings: getSettings(),
     bookingMonths: getBookingMonths()
   };
-  try { cache.put(key, JSON.stringify(result), 1); } catch (e) {}
+
+  try { cache.put(cacheKey, JSON.stringify(result), 3); } catch (e) {}
   return result;
 }
 

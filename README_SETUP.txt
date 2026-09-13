@@ -52,3 +52,14 @@ UPDATE 2026-09-10
 - Dashboard menampilkan cache lokal seketika, lalu sinkron otomatis ke Spreadsheet.
 - Dashboard memiliki tombol Refresh manual dan polling otomatis.
 - Apps Script menambahkan endpoint getDashboardData untuk mengambil booking + settings + daftar bulan dalam satu request, dengan cache singkat agar lebih cepat.
+
+
+UPDATE 2026-09-13 — ADMIN FAST + FILTER TANGGAL
+- Dashboard sekarang meminta data berdasarkan BULAN aktif, bukan scan semua tab booking sekaligus.
+- Apps Script getDashboardData/getBookings menerima parameter month dan membaca tab bulan yang diminta secara langsung.
+- Cache server dashboard diperpanjang singkat (3 detik) agar request berulang lebih ringan tetapi data tetap cepat diperbarui.
+- Admin menampilkan tombol tanggal 1, 2, 3, dst. di dashboard.
+- Klik tanggal langsung memfilter kartu booking hanya untuk tanggal tersebut.
+- Saat pertama masuk, bulan aktif diarahkan ke bulan sekarang dan tanggal hari ini otomatis dipilih.
+- Saat ganti bulan, dashboard langsung melakukan request data bulan tersebut.
+- Tombol Refresh tetap memaksa mengambil data terbaru dari Spreadsheet.

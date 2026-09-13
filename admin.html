@@ -8,15 +8,17 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
 :root{--bg:#f2f0eb;--surface:#e9e6df;--dark:#151515;--text:#171717;--muted:#77746d;--border:rgba(20,20,20,.14);--white:#fff;--green:#315c43;--red:#7b3d38;--font:"Manrope",sans-serif;--mono:"DM Mono",monospace}
 *{box-sizing:border-box;margin:0;padding:0}body{background:var(--bg);color:var(--text);font-family:var(--font);min-width:320px}.dashboard-loader{position:fixed;inset:0;background:rgba(242,240,235,.94);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:9999;display:flex;align-items:center;justify-content:center;opacity:1;visibility:visible;transition:opacity .28s ease,visibility .28s ease}.dashboard-loader.hidden{opacity:0;visibility:hidden;pointer-events:none}.loader-card{text-align:center;width:min(340px,calc(100% - 40px));padding:30px 25px;border:1px solid var(--border);background:rgba(255,255,255,.6);box-shadow:0 20px 60px rgba(0,0,0,.08)}.loader-ring{width:38px;height:38px;border:2px solid rgba(20,20,20,.15);border-top-color:var(--dark);border-radius:50%;margin:0 auto 16px;animation:spin .75s linear infinite}.loader-card strong{display:block;font-size:14px}.loader-card small{display:block;margin-top:7px;font:8px var(--mono);color:var(--muted)}
-.date-picker{display:flex;align-items:center;gap:12px;padding:12px 22px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.18)}
+.date-picker{display:flex;align-items:center;gap:10px;padding:12px 22px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.18);overflow:hidden}
 .date-picker-label{font:8px var(--mono);color:var(--muted);white-space:nowrap;text-transform:uppercase;letter-spacing:.08em}
-.date-select-wrap{position:relative;min-width:230px;flex:1;max-width:420px}
-.date-select-wrap:after{content:"⌄";position:absolute;right:14px;top:50%;transform:translateY(-52%);pointer-events:none;font-size:15px}
-.date-select{width:100%;appearance:none;-webkit-appearance:none;border:1px solid var(--border);background:var(--bg);padding:12px 40px 12px 13px;font:10px var(--sans);font-weight:600;outline:none;cursor:pointer;border-radius:8px}
-.date-select:hover{background:#fff;border-color:#999;box-shadow:0 5px 14px rgba(0,0,0,.07)}
-.date-select:focus{border-color:var(--dark);box-shadow:0 0 0 3px rgba(0,0,0,.07)}
-.date-select option{background:var(--bg);color:var(--dark)}
-@media(max-width:620px){.date-picker{padding:11px 17px}.date-select-wrap{min-width:0;max-width:none}.date-picker-label{display:none}}
+.date-buttons{display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin;padding:2px 1px 5px;flex:1}
+.date-btn{min-width:42px;height:38px;border:1px solid var(--border);background:var(--bg);border-radius:8px;font:700 10px var(--sans);cursor:pointer;flex:0 0 auto}
+.date-btn small{display:block;font:7px var(--mono);color:var(--muted);margin-top:2px}
+.date-btn:hover{background:#fff;border-color:#999;transform:translateY(-1px)}
+.date-btn.selected{background:var(--dark);color:#fff;border-color:var(--dark)}
+.date-btn.selected small{color:#aaa}
+.date-btn.has-booking{box-shadow:inset 0 -3px 0 #777}
+.date-btn.has-booking.selected{box-shadow:inset 0 -3px 0 #fff}
+@media(max-width:620px){.date-picker{padding:10px 12px}.date-picker-label{display:none}.date-buttons{gap:5px}.date-btn{min-width:40px;height:36px}}
 button,input,select{transition:transform .18s ease,background .18s ease,border-color .18s ease,box-shadow .18s ease,opacity .18s ease}button:active{transform:scale(.97)!important}.btn,.iconbtn{transition:all .2s cubic-bezier(.2,.8,.2,1)}.btn:hover,.iconbtn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.07)}.btn:disabled,.iconbtn:disabled{opacity:.55;cursor:wait;transform:none;box-shadow:none}button,input,select{font:inherit}button{cursor:pointer}.wrap{width:min(1400px,calc(100% - 40px));margin:auto}
 .topbar{height:78px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:20px}
 .brand{display:flex;align-items:center;gap:12px}.logo{width:42px;height:42px;background:var(--dark);color:#fff;display:grid;place-items:center;font-weight:800;overflow:hidden}.logo img{width:100%;height:100%;object-fit:cover}.refreshing{opacity:.65;pointer-events:none}.refreshing .refresh-spin{display:inline-block;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.brand strong{display:block;font-size:15px}.brand small{font:8px var(--mono);color:var(--muted)}
@@ -310,7 +312,7 @@ function restoreDashboardCache_(){
     const c=JSON.parse(localStorage.getItem(DASHBOARD_CACHE_KEY)||"null");
     if(!c||!Array.isArray(c.bookings))return false;
     bookings=c.bookings||[]; settings=c.settings||{capsters:[],promos:[]}; bookingMonths=c.bookingMonths||[];
-    selectedMonth=c.selectedMonth||bookingMonths[0]||monthNameFromDate_(today); selectedDate=c.selectedDate||"";
+    selectedMonth=c.selectedMonth||bookingMonths[0]||monthNameFromDate_(today); selectedDate=c.selectedDate||((selectedMonth===monthNameFromDate_(today))?k(today):"");
     monthFilter.innerHTML=(bookingMonths.length?bookingMonths:[selectedMonth]).map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
     monthFilter.value=selectedMonth; renderSettings(); render();
     const live=document.getElementById("liveStatus"); if(live){live.textContent="● CACHED · memperbarui…";live.className="live-status";}
@@ -323,7 +325,7 @@ async function load(silent=false,force=false){
   const refreshButtons=[document.getElementById("refreshDashboard"),document.getElementById("refreshBookings")].filter(Boolean);
   refreshButtons.forEach(b=>{b.classList.add("refreshing");b.innerHTML=b.id==="refreshDashboard"?'<span class="refresh-spin">↻</span> Refreshing':'<span class="refresh-spin">↻</span>';});
   try{
-    const payload=force?{nocache:Date.now()}:{};
+    const payload={month:selectedMonth||monthNameFromDate_(today)}; if(force)payload.nocache=Date.now();
     const data=await api("getDashboardData",payload);
     const nextBookings=Array.isArray(data?.bookings)?data.bookings:[];
     const nextSettings=data?.settings||{capsters:[],promos:[]};
@@ -331,9 +333,11 @@ async function load(silent=false,force=false){
     const signature=JSON.stringify({b:nextBookings,s:nextSettings,m:nextMonths});
     const changed=signature!==lastDataSignature;
     bookings=nextBookings; settings=nextSettings; bookingMonths=nextMonths;
-    if(!selectedMonth || !bookingMonths.includes(selectedMonth)) selectedMonth=bookingMonths[0]||monthNameFromDate_(today);
+    if(!selectedMonth || !bookingMonths.includes(selectedMonth)) selectedMonth=bookingMonths.includes(monthNameFromDate_(today))?monthNameFromDate_(today):(bookingMonths[0]||monthNameFromDate_(today));
+    if(!selectedDate && selectedMonth===monthNameFromDate_(today)) selectedDate=k(today);
     monthFilter.innerHTML=(bookingMonths.length?bookingMonths:[selectedMonth]).map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
     monthFilter.value=selectedMonth;
+    if(!selectedDate && selectedMonth===monthNameFromDate_(today)) selectedDate=k(today);
     renderDatePicker_();
     if(changed){ renderSettings(); render(); if(document.getElementById("capsterModal")?.classList.contains("show")) renderCapsterPopup(); }
     lastDataSignature=signature; lastRefreshAt=Date.now();
@@ -365,36 +369,25 @@ function renderDatePicker_(){
   const [yy,mm]=mk.split("-").map(Number);
   const days=new Date(yy,mm,0).getDate();
 
-  // Kalau pindah bulan, tanggal yang sebelumnya dipilih tidak boleh terbawa.
   if(selectedDate && monthKey_(selectedDate)!==mk) selectedDate="";
-
-  let options=`<option value="">Semua tanggal — tampilkan semua booking bulan ini</option>`;
+  let buttons=`<button type="button" class="date-btn ${!selectedDate?'selected':''}" data-date="">ALL<small>bulan</small></button>`;
   for(let d=1;d<=days;d++){
     const ds=`${yy}-${String(mm).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
     const dateObj=new Date(ds+"T00:00:00");
-    const count=bookings.filter(b=>b.date===ds).length;
-    const label=`${dn[dateObj.getDay()]}, ${String(d).padStart(2,"0")} ${mn[mm-1]} ${yy}${count?` — ${count} booking`:``}`;
-    options+=`<option value="${ds}" ${selectedDate===ds?'selected':''}>${esc(label)}</option>`;
+    const count=bookings.filter(b=>b.date===ds && String(b.status||"")!=="Cancelled").length;
+    buttons+=`<button type="button" class="date-btn ${selectedDate===ds?'selected ':''}${count?'has-booking':''}" data-date="${ds}" title="${count} booking">
+      ${d}<small>${dn[dateObj.getDay()]}${count?` · ${count}`:""}</small>
+    </button>`;
   }
-
-  box.innerHTML=`
-    <span class="date-picker-label">Tampilkan berdasarkan tgl</span>
-    <div class="date-select-wrap">
-      <select id="bookingDateSelect" class="date-select" aria-label="Tampilkan booking berdasarkan tanggal">
-        ${options}
-      </select>
-    </div>`;
-
-  const select=document.getElementById("bookingDateSelect");
-  if(select) select.addEventListener("change",()=>{
-    selectedDate=select.value||"";
+  box.innerHTML=`<span class="date-picker-label">Tampilkan tgl</span><div class="date-buttons">${buttons}</div>`;
+  box.querySelectorAll(".date-btn").forEach(btn=>btn.addEventListener("click",()=>{
+    selectedDate=btn.dataset.date||"";
     todayOnly=false;
+    renderDatePicker_();
     render();
-    // Animasi kecil agar perubahan filter terasa responsif.
-    list.classList.remove("filter-refresh");
-    void list.offsetWidth;
-    list.classList.add("filter-refresh");
-  });
+    list.classList.remove("filter-refresh"); void list.offsetWidth; list.classList.add("filter-refresh");
+    setTimeout(()=>document.querySelector(".date-btn.selected")?.scrollIntoView({behavior:"smooth",block:"nearest",inline:"center"}),0);
+  }));
 }
 function renderSettings(){
   const active=settings.capsters.filter(x=>x.active);
@@ -841,7 +834,7 @@ function remindCustomer(id){
 document.getElementById("refreshDashboard")?.addEventListener("click",()=>load(false,true));
 document.getElementById("refreshBookings")?.addEventListener("click",()=>load(false,true));
 search.oninput=render;status.onchange=render;barber.onchange=render;
-monthFilter.onchange=()=>{todayOnly=false;selectedDate="";selectedMonth=monthFilter.value;search.value="";status.value="all";barber.value="all";renderDatePicker_();render()};
+monthFilter.onchange=async()=>{todayOnly=false;selectedDate="";selectedMonth=monthFilter.value;search.value="";status.value="all";barber.value="all";render();renderDatePicker_();await load(false,true)};
 document.getElementById("quickReschedule").onclick=()=>{let b=bookings.find(x=>monthKey_(x.date)===selectedMonthKey_()&&!['Cancelled','Completed'].includes(x.status));if(b)openRes(b.id)};
 document.getElementById("quickToday").onclick=()=>{
   todayOnly=true; selectedDate=""; renderDatePicker_();
