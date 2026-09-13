@@ -11,6 +11,7 @@
 .date-picker{display:flex;align-items:center;gap:10px;padding:12px 22px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.18);overflow:hidden}
 .date-picker-label{font:8px var(--mono);color:var(--muted);white-space:nowrap;text-transform:uppercase;letter-spacing:.08em}
 .date-buttons{display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin;padding:2px 1px 5px;flex:1}
+.date-month-select{height:38px;border:1px solid var(--border);background:var(--bg);border-radius:8px;padding:0 9px;font:700 9px var(--font);outline:none;flex:0 0 auto}.date-month-select:focus{border-color:var(--dark)}
 .date-btn{min-width:42px;height:38px;border:1px solid var(--border);background:var(--bg);border-radius:8px;font:700 10px var(--sans);cursor:pointer;flex:0 0 auto}
 .date-btn small{display:block;font:7px var(--mono);color:var(--muted);margin-top:2px}
 .date-btn:hover{background:#fff;border-color:#999;transform:translateY(-1px)}
@@ -18,7 +19,7 @@
 .date-btn.selected small{color:#aaa}
 .date-btn.has-booking{box-shadow:inset 0 -3px 0 #777}
 .date-btn.has-booking.selected{box-shadow:inset 0 -3px 0 #fff}
-@media(max-width:620px){.date-picker{padding:10px 12px}.date-picker-label{display:none}.date-buttons{gap:5px}.date-btn{min-width:40px;height:36px}}
+@media(max-width:620px){.date-picker{padding:10px 12px}.date-picker-label{display:none}.date-month-select{height:36px;max-width:125px}.date-buttons{gap:5px}.date-btn{min-width:40px;height:36px}}
 button,input,select{transition:transform .18s ease,background .18s ease,border-color .18s ease,box-shadow .18s ease,opacity .18s ease}button:active{transform:scale(.97)!important}.btn,.iconbtn{transition:all .2s cubic-bezier(.2,.8,.2,1)}.btn:hover,.iconbtn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.07)}.btn:disabled,.iconbtn:disabled{opacity:.55;cursor:wait;transform:none;box-shadow:none}button,input,select{font:inherit}button{cursor:pointer}.wrap{width:min(1400px,calc(100% - 40px));margin:auto}
 .topbar{height:78px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:20px}
 .brand{display:flex;align-items:center;gap:12px}.logo{width:42px;height:42px;background:var(--dark);color:#fff;display:grid;place-items:center;font-weight:800;overflow:hidden}.logo img{width:100%;height:100%;object-fit:cover}.refreshing{opacity:.65;pointer-events:none}.refreshing .refresh-spin{display:inline-block;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.brand strong{display:block;font-size:15px}.brand small{font:8px var(--mono);color:var(--muted)}
@@ -272,7 +273,7 @@ button,input,select{transition:transform .18s ease,background .18s ease,border-c
 <div class="toast" id="toast"></div>
 
 <script>
-const API_URL="/api/reso";const ADMIN_PIN="reso2626";
+const API_URL="https://script.google.com/macros/s/AKfycbwqj6rtpsVnaKRuK1NkJVoeby8V4Mtxdsi1_Bqt_MhFJZZkdWiMWmlCj1yCkQpGZOpapw/exec";const ADMIN_PIN="reso2626";
 const AUTH_KEY="reso_admin_authenticated";
 const loginScreen=document.getElementById("loginScreen"),loginForm=document.getElementById("loginForm"),pinInput=document.getElementById("pinInput"),loginError=document.getElementById("loginError"),pinToggle=document.getElementById("pinToggle"),dashboardLoader=document.getElementById("dashboardLoader"),loaderText=document.getElementById("loaderText");
 function isLoggedIn(){return sessionStorage.getItem(AUTH_KEY)==="1"}
@@ -302,7 +303,7 @@ async function api(action,payload={}){
   return result;
 }
 let settings={capsters:[],promos:[]};
-const G=null, monthFilter=document.getElementById("monthFilter"), list=document.getElementById("bookingList"),search=document.getElementById("search"),status=document.getElementById("statusFilter"),barber=document.getElementById("barberFilter"),mn=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"],dn=["Min","Sen","Sel","Rab","Kam","Jum","Sab"],today=new Date();
+const G=null, list=document.getElementById("bookingList"),search=document.getElementById("search"),status=document.getElementById("statusFilter"),barber=document.getElementById("barberFilter"),mn=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"],dn=["Min","Sen","Sel","Rab","Kam","Jum","Sab"],today=new Date();
 today.setHours(0,0,0,0);let bookings=[],bookingMonths=[],selectedMonth="",selectedDate="",current=null,selDate=null,selTime=null,view=new Date(today.getFullYear(),today.getMonth(),1),sortNearest=false,todayOnly=false;
 const k=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`,dt=s=>{let d=new Date(s+"T00:00:00");return`${dn[d.getDay()]}, ${d.getDate()} ${mn[d.getMonth()]} ${d.getFullYear()}`},esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 let isRefreshing=false,lastDataSignature="",lastRefreshAt=0;
@@ -313,8 +314,7 @@ function restoreDashboardCache_(){
     if(!c||!Array.isArray(c.bookings))return false;
     bookings=c.bookings||[]; settings=c.settings||{capsters:[],promos:[]}; bookingMonths=c.bookingMonths||[];
     selectedMonth=c.selectedMonth||bookingMonths[0]||monthNameFromDate_(today); selectedDate=c.selectedDate||((selectedMonth===monthNameFromDate_(today))?k(today):"");
-    monthFilter.innerHTML=(bookingMonths.length?bookingMonths:[selectedMonth]).map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
-    monthFilter.value=selectedMonth; renderSettings(); render();
+    renderDatePicker_(); renderSettings(); render();
     const live=document.getElementById("liveStatus"); if(live){live.textContent="● CACHED · memperbarui…";live.className="live-status";}
     return true;
   }catch(e){return false}
@@ -335,8 +335,6 @@ async function load(silent=false,force=false){
     bookings=nextBookings; settings=nextSettings; bookingMonths=nextMonths;
     if(!selectedMonth || !bookingMonths.includes(selectedMonth)) selectedMonth=bookingMonths.includes(monthNameFromDate_(today))?monthNameFromDate_(today):(bookingMonths[0]||monthNameFromDate_(today));
     if(!selectedDate && selectedMonth===monthNameFromDate_(today)) selectedDate=k(today);
-    monthFilter.innerHTML=(bookingMonths.length?bookingMonths:[selectedMonth]).map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
-    monthFilter.value=selectedMonth;
     if(!selectedDate && selectedMonth===monthNameFromDate_(today)) selectedDate=k(today);
     renderDatePicker_();
     if(changed){ renderSettings(); render(); if(document.getElementById("capsterModal")?.classList.contains("show")) renderCapsterPopup(); }
@@ -354,7 +352,7 @@ async function load(silent=false,force=false){
     isRefreshing=false;
   }
 }
-// Tampilkan cache lokal seketika, lalu sinkronkan ke Spreadsheet tanpa klik tombol lain.
+// Cache hanya dipakai sebagai tampilan sementara; data live tetap diminta otomatis.
 restoreDashboardCache_();
 setInterval(()=>{if(document.visibilityState==="visible" && isLoggedIn())load(true,false)},5000);
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible" && isLoggedIn())load(true,false)});
@@ -379,7 +377,16 @@ function renderDatePicker_(){
       ${d}<small>${dn[dateObj.getDay()]}${count?` · ${count}`:""}</small>
     </button>`;
   }
-  box.innerHTML=`<span class="date-picker-label">Tampilkan tgl</span><div class="date-buttons">${buttons}</div>`;
+  box.innerHTML=`<span class="date-picker-label">Tampilkan tgl</span>
+    <select id="monthFilter" class="date-month-select" aria-label="Pilih bulan">${(bookingMonths.length?bookingMonths:[selectedMonth]).map(x=>`<option value="${esc(x)}" ${x===selectedMonth?"selected":""}>${esc(x)}</option>`).join("")}</select>
+    <div class="date-buttons">${buttons}</div>`;
+  const monthFilter=document.getElementById("monthFilter");
+  monthFilter?.addEventListener("change",async()=>{
+    todayOnly=false; selectedDate=""; selectedMonth=monthFilter.value;
+    search.value=""; status.value="all"; barber.value="all";
+    renderDatePicker_(); render();
+    await load(false,true);
+  });
   box.querySelectorAll(".date-btn").forEach(btn=>btn.addEventListener("click",()=>{
     selectedDate=btn.dataset.date||"";
     todayOnly=false;
@@ -843,7 +850,13 @@ document.getElementById("quickToday").onclick=()=>{
 };
 document.getElementById("quickAll").onclick=()=>{todayOnly=false; selectedDate=""; renderDatePicker_();search.value="";status.value="all";barber.value="all";render()};
 document.getElementById("newBooking").onclick=openManualBooking;document.getElementById("resetDemo").style.display="none";
-function toast(x){let t=document.getElementById("toast");t.textContent=x;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2200)}if(isLoggedIn()){showDashboardLoader("Mengambil data terbaru dari Spreadsheet…");load(true,false);}
+function toast(x){let t=document.getElementById("toast");t.textContent=x;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2200)}if(isLoggedIn()){
+  showDashboardLoader("Mengambil data terbaru dari Spreadsheet…");
+  selectedMonth=selectedMonth||monthNameFromDate_(today);
+  renderDatePicker_();
+  render();
+  load(true,true);
+}
 </script>
 </body>
 </html>
