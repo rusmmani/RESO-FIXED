@@ -145,6 +145,33 @@ button,input,select,textarea{max-width:100%;font:inherit}
   .top-actions .btn{width:100%}
   .top-actions .top-capster-btn{display:none}
 }
+
+.booking-new-row{
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  width:100%;
+  margin:-8px 0 18px;
+}
+.booking-new-row .btn{
+  white-space:nowrap;
+}
+@media (max-width:700px){
+  .booking-new-row{
+    margin:-2px 0 14px;
+    justify-content:flex-end;
+  }
+  .booking-new-row .btn{
+    min-height:42px;
+    padding:0 15px;
+  }
+}
+@media (max-width:380px){
+  .booking-new-row .btn{
+    font-size:11px;
+    padding:0 12px;
+  }
+}
 </style>
 </head>
 <body>
@@ -167,7 +194,7 @@ button,input,select,textarea{max-width:100%;font:inherit}
 <div class="dashboard-loader hidden" id="dashboardLoader" aria-live="polite"><div class="loader-card"><div class="loader-ring"></div><strong>Memuat Dashboard</strong><small id="loaderText">Mengambil data terbaru dari Spreadsheet…</small></div></div><header class="topbar">
   <div class="wrap" style="display:flex;align-items:center;justify-content:space-between;width:100%">
     <div class="brand"><div class="logo"><img src="data:image/jpeg;base64,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" alt="RESO logo" decoding="sync"></div><div><strong>RESO Haircut</strong><small>ADMIN DASHBOARD · INDRAMAYU</small></div></div>
-    <div class="top-actions"><button class="btn" id="refreshDashboard" type="button" title="Refresh data booking">↻ Refresh</button><button class="btn top-capster-btn" id="topCapster" type="button">✂ Capster</button><button class="btn dark" id="newBooking">+ Booking Baru</button></div>
+    <div class="top-actions"><button class="btn" id="refreshDashboard" type="button" title="Refresh data booking">↻ Refresh</button><button class="btn top-capster-btn" id="topCapster" type="button">✂ Capster</button></div>
   </div>
 </header>
 
@@ -175,6 +202,10 @@ button,input,select,textarea{max-width:100%;font:inherit}
   <div class="head">
     <div><span class="eyebrow">RESO / OPERATIONS</span><h1>Dashboard<br><i>Booking.</i></h1></div>
     <p>Kelola jadwal booking, lihat slot hari ini, dan lakukan reschedule langsung dengan menekan tanggal atau jam booking.</p>
+  </div>
+
+  <div class="booking-new-row">
+    <button class="btn dark" id="newBooking" type="button">+ Booking Baru</button>
   </div>
 
   <section class="stats">
