@@ -4,11 +4,9 @@ const TZ = 'Asia/Jakarta';
 const BOOKING_HOUR_START = 10;
 const BOOKING_HOUR_END = 22;
 const SLOT_MINUTES = 30;
-const CLIENT_SLOT_MINUTES = 40;
 const DEFAULT_BARBERS = ['Rezky', 'Iqbal'];
 const CAPSTER_SHEET = 'Capsters';
 const PROMO_SHEET = 'Promos';
-const BOOKING_HEADERS = ['ID','Timestamp','Name','WA','Note','Reminder','Promo','Category','Service','Price','Duration','Barber','Date','Time','Status','Promo Discount','Total Price'];
 
 
 function _bookingCacheKey_(month){
@@ -33,9 +31,6 @@ function doGet(e) {
     }
     if (api === 'getBookingMonths') {
       return jsonOutput_({ok:true, data:getBookingMonths()});
-    }
-    if (api === 'getDataSourceInfo') {
-      return jsonOutput_({ok:true, data:getDataSourceInfo()});
     }
     if (api === 'validatePromo') {
       return jsonOutput_({ok:true, data:validatePromo(String(params.code || ''))});
@@ -109,7 +104,7 @@ function doPost(e) {
         throw new Error('Action tidak dikenali: ' + action);
     }
 
-    if (!['getBookings','getDashboardData','getSettings','getBookingMonths','getDataSourceInfo','getClientBookingData','validatePromo'].includes(action)) {
+    if (!['getBookings','getDashboardData','getSettings','getBookingMonths','getClientBookingData','validatePromo'].includes(action)) {
       clearDashboardCache_();
     }
     return jsonOutput_({ok:true, data:result});
@@ -194,30 +189,19 @@ function migrateLegacyBookingsForMonth_(ss, targetSheet, dateValue) {
   if (fresh.length) targetSheet.getRange(targetSheet.getLastRow()+1,1,fresh.length,17).setValues(fresh);
 }
 
-function isBookingSheet_(sh) {
-  if (!sh) return false;
-  const name = sh.getName();
-  if (name === CAPSTER_SHEET || name === PROMO_SHEET) return false;
-  if (sh.getLastColumn() < BOOKING_HEADERS.length || sh.getLastRow() < 1) return false;
-  const headers = sh.getRange(1,1,1,BOOKING_HEADERS.length).getDisplayValues()[0]
-    .map(v => String(v || '').trim().toLowerCase());
-  const expected = BOOKING_HEADERS.map(v => v.toLowerCase());
-  // Terima tab bulan, tab legacy Bookings, maupun tab yang dibuat manual
-  // selama struktur kolom booking-nya sama. Ini penting untuk spreadsheet
-  // yang memiliki nama tab berbeda tetapi berisi data booking yang valid.
-  return expected.every((h,i) => headers[i] === h);
-}
-
 function getAllBookingSheets_() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  // Pastikan tab bulan berjalan tersedia untuk booking baru.
+  // Pastikan tab bulan berjalan selalu ada.
   getSheet_(new Date());
 
-  // Baca SEMUA tab booking pada spreadsheet yang ID-nya ditetapkan di atas.
-  // Jangan membatasi hanya pada nama `Bookings` atau `Bulan Tahun`, karena
-  // data pada spreadsheet bisa berada di tab dengan nama lain (termasuk tab
-  // yang dipilih dari URL dengan gid tertentu).
-  return ss.getSheets().filter(isBookingSheet_);
+  // Sertakan sheet legacy `Bookings` agar data lama yang sudah ada di
+  // Spreadsheet tetap terbaca oleh website/admin.
+  const sheets = ss.getSheets().filter(sh =>
+    (/^.+ \d{4}$/.test(sh.getName()) || sh.getName() === SHEET_NAME) &&
+    sh.getName() !== CAPSTER_SHEET &&
+    sh.getName() !== PROMO_SHEET
+  );
+  return sheets;
 }
 
 /**
@@ -303,31 +287,21 @@ function createBooking(p) {
   }
 }
 
-function getDataSourceInfo() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheets = ss.getSheets();
-  return {
-    spreadsheetId: SPREADSHEET_ID,
-    spreadsheetName: ss.getName(),
-    bookingSheets: sheets.filter(isBookingSheet_).map(sh => ({
-      name: sh.getName(),
-      gid: sh.getSheetId(),
-      rows: Math.max(0, sh.getLastRow() - 1)
-    }))
-  };
-}
-
 function getBookingMonths() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  getSheet_(new Date());
   const names = new Set();
-  const sheets = getAllBookingSheets_();
-  sheets.forEach(sh => {
-    const last = sh.getLastRow();
-    if (last < 2) return;
-    const dates = sh.getRange(2,13,last-1,1).getValues();
+  const monthSheets = ss.getSheets().filter(sh => /^.+ \d{4}$/.test(sh.getName()));
+  monthSheets.forEach(sh => names.add(sh.getName()));
+
+  // Tambahkan bulan dari data legacy `Bookings`, jika ada.
+  const legacy = ss.getSheetByName(SHEET_NAME);
+  if (legacy && legacy.getLastRow() >= 2) {
+    const dates = legacy.getRange(2,13,legacy.getLastRow()-1,1).getValues();
     dates.forEach(r => {
       if (r[0]) names.add(getMonthSheetName_(r[0]));
     });
-  });
+  }
 
   const idx = {'Januari':0,'Februari':1,'Maret':2,'April':3,'Mei':4,'Juni':5,'Juli':6,'Agustus':7,'September':8,'Oktober':9,'November':10,'Desember':11};
   return Array.from(names).sort((a,b) => {
@@ -407,7 +381,7 @@ function getClientBookingData(date, barber) {
     });
   }
   const times = [];
-  for (let mins = BOOKING_HOUR_START * 60; mins < BOOKING_HOUR_END * 60; mins += CLIENT_SLOT_MINUTES) {
+  for (let mins = BOOKING_HOUR_START * 60; mins < BOOKING_HOUR_END * 60; mins += SLOT_MINUTES) {
     const h = String(Math.floor(mins / 60)).padStart(2,'0');
     const m = String(mins % 60).padStart(2,'0');
     const time = h + ':' + m;
@@ -720,5 +694,5 @@ function isValidTime_(t) {
   const mins = Number(m[1])*60 + Number(m[2]);
   return mins >= BOOKING_HOUR_START*60 &&
          mins < BOOKING_HOUR_END*60 &&
-         (Number(m[2]) % SLOT_MINUTES === 0 || Number(m[2]) % CLIENT_SLOT_MINUTES === 0);
+         Number(m[2]) % SLOT_MINUTES === 0;
 }
