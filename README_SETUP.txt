@@ -54,12 +54,8 @@ UPDATE 2026-09-10
 - Apps Script menambahkan endpoint getDashboardData untuk mengambil booking + settings + daftar bulan dalam satu request, dengan cache singkat agar lebih cepat.
 
 
-UPDATE 2026-09-13 — ADMIN FAST + FILTER TANGGAL
-- Dashboard sekarang meminta data berdasarkan BULAN aktif, bukan scan semua tab booking sekaligus.
-- Apps Script getDashboardData/getBookings menerima parameter month dan membaca tab bulan yang diminta secara langsung.
-- Cache server dashboard diperpanjang singkat (3 detik) agar request berulang lebih ringan tetapi data tetap cepat diperbarui.
-- Admin menampilkan tombol tanggal 1, 2, 3, dst. di dashboard.
-- Klik tanggal langsung memfilter kartu booking hanya untuk tanggal tersebut.
-- Saat pertama masuk, bulan aktif diarahkan ke bulan sekarang dan tanggal hari ini otomatis dipilih.
-- Saat ganti bulan, dashboard langsung melakukan request data bulan tersebut.
-- Tombol Refresh tetap memaksa mengambil data terbaru dari Spreadsheet.
+VALIDASI SUMBER DATA (UPDATE)
+- Code.gs selalu menggunakan Spreadsheet ID: 11m-xtfldUCVuJQsB9-FUCGMK8V4d5QpekZPOndANWOQ.
+- Admin dan proxy diseragamkan ke deployment Apps Script yang sama.
+- Pembacaan booking sekarang mendeteksi semua tab yang memiliki 17 header booking yang benar, bukan hanya tab bernama `Bookings` atau `Bulan Tahun`. Jadi tab pada spreadsheet dengan nama lain/gid tertentu tetap terbaca.
+- Endpoint `getDataSourceInfo` tersedia untuk mengecek spreadsheet dan tab booking yang sedang dibaca.

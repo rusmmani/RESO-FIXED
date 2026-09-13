@@ -8,6 +8,7 @@ const CLIENT_SLOT_MINUTES = 40;
 const DEFAULT_BARBERS = ['Rezky', 'Iqbal'];
 const CAPSTER_SHEET = 'Capsters';
 const PROMO_SHEET = 'Promos';
+const BOOKING_HEADERS = ['ID','Timestamp','Name','WA','Note','Reminder','Promo','Category','Service','Price','Duration','Barber','Date','Time','Status','Promo Discount','Total Price'];
 
 
 function _bookingCacheKey_(month){
@@ -22,7 +23,7 @@ function doGet(e) {
       return jsonOutput_({ok:true, data:getBookings(params.nocache)});
     }
     if (api === 'getDashboardData') {
-      return jsonOutput_({ok:true, data:getDashboardData(params.nocache, String(params.month || ''))});
+      return jsonOutput_({ok:true, data:getDashboardData(params.nocache)});
     }
     if (api === 'getClientBookingData') {
       return jsonOutput_({ok:true, data:getClientBookingData(String(params.date || ''), String(params.barber || ''))});
@@ -32,6 +33,9 @@ function doGet(e) {
     }
     if (api === 'getBookingMonths') {
       return jsonOutput_({ok:true, data:getBookingMonths()});
+    }
+    if (api === 'getDataSourceInfo') {
+      return jsonOutput_({ok:true, data:getDataSourceInfo()});
     }
     if (api === 'validatePromo') {
       return jsonOutput_({ok:true, data:validatePromo(String(params.code || ''))});
@@ -54,7 +58,7 @@ function doPost(e) {
         result = getBookings(p.nocache);
         break;
       case 'getDashboardData':
-        result = getDashboardData(p.nocache, String(p.month || ''));
+        result = getDashboardData(p.nocache);
         break;
       case 'getClientBookingData':
         result = getClientBookingData(String(p.date || ''), String(p.barber || ''));
@@ -105,7 +109,7 @@ function doPost(e) {
         throw new Error('Action tidak dikenali: ' + action);
     }
 
-    if (!['getBookings','getDashboardData','getSettings','getBookingMonths','getClientBookingData','validatePromo'].includes(action)) {
+    if (!['getBookings','getDashboardData','getSettings','getBookingMonths','getDataSourceInfo','getClientBookingData','validatePromo'].includes(action)) {
       clearDashboardCache_();
     }
     return jsonOutput_({ok:true, data:result});
@@ -190,19 +194,30 @@ function migrateLegacyBookingsForMonth_(ss, targetSheet, dateValue) {
   if (fresh.length) targetSheet.getRange(targetSheet.getLastRow()+1,1,fresh.length,17).setValues(fresh);
 }
 
+function isBookingSheet_(sh) {
+  if (!sh) return false;
+  const name = sh.getName();
+  if (name === CAPSTER_SHEET || name === PROMO_SHEET) return false;
+  if (sh.getLastColumn() < BOOKING_HEADERS.length || sh.getLastRow() < 1) return false;
+  const headers = sh.getRange(1,1,1,BOOKING_HEADERS.length).getDisplayValues()[0]
+    .map(v => String(v || '').trim().toLowerCase());
+  const expected = BOOKING_HEADERS.map(v => v.toLowerCase());
+  // Terima tab bulan, tab legacy Bookings, maupun tab yang dibuat manual
+  // selama struktur kolom booking-nya sama. Ini penting untuk spreadsheet
+  // yang memiliki nama tab berbeda tetapi berisi data booking yang valid.
+  return expected.every((h,i) => headers[i] === h);
+}
+
 function getAllBookingSheets_() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  // Pastikan tab bulan berjalan selalu ada.
+  // Pastikan tab bulan berjalan tersedia untuk booking baru.
   getSheet_(new Date());
 
-  // Sertakan sheet legacy `Bookings` agar data lama yang sudah ada di
-  // Spreadsheet tetap terbaca oleh website/admin.
-  const sheets = ss.getSheets().filter(sh =>
-    (/^.+ \d{4}$/.test(sh.getName()) || sh.getName() === SHEET_NAME) &&
-    sh.getName() !== CAPSTER_SHEET &&
-    sh.getName() !== PROMO_SHEET
-  );
-  return sheets;
+  // Baca SEMUA tab booking pada spreadsheet yang ID-nya ditetapkan di atas.
+  // Jangan membatasi hanya pada nama `Bookings` atau `Bulan Tahun`, karena
+  // data pada spreadsheet bisa berada di tab dengan nama lain (termasuk tab
+  // yang dipilih dari URL dengan gid tertentu).
+  return ss.getSheets().filter(isBookingSheet_);
 }
 
 /**
@@ -288,21 +303,31 @@ function createBooking(p) {
   }
 }
 
-function getBookingMonths() {
+function getDataSourceInfo() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  getSheet_(new Date());
-  const names = new Set();
-  const monthSheets = ss.getSheets().filter(sh => /^.+ \d{4}$/.test(sh.getName()));
-  monthSheets.forEach(sh => names.add(sh.getName()));
+  const sheets = ss.getSheets();
+  return {
+    spreadsheetId: SPREADSHEET_ID,
+    spreadsheetName: ss.getName(),
+    bookingSheets: sheets.filter(isBookingSheet_).map(sh => ({
+      name: sh.getName(),
+      gid: sh.getSheetId(),
+      rows: Math.max(0, sh.getLastRow() - 1)
+    }))
+  };
+}
 
-  // Tambahkan bulan dari data legacy `Bookings`, jika ada.
-  const legacy = ss.getSheetByName(SHEET_NAME);
-  if (legacy && legacy.getLastRow() >= 2) {
-    const dates = legacy.getRange(2,13,legacy.getLastRow()-1,1).getValues();
+function getBookingMonths() {
+  const names = new Set();
+  const sheets = getAllBookingSheets_();
+  sheets.forEach(sh => {
+    const last = sh.getLastRow();
+    if (last < 2) return;
+    const dates = sh.getRange(2,13,last-1,1).getValues();
     dates.forEach(r => {
       if (r[0]) names.add(getMonthSheetName_(r[0]));
     });
-  }
+  });
 
   const idx = {'Januari':0,'Februari':1,'Maret':2,'April':3,'Mei':4,'Juni':5,'Juli':6,'Agustus':7,'September':8,'Oktober':9,'November':10,'Desember':11};
   return Array.from(names).sort((a,b) => {
@@ -313,94 +338,51 @@ function getBookingMonths() {
   });
 }
 
-function getBookings(forceRefresh, month) {
-  // Dashboard memakai mode bulanan agar tidak perlu membaca seluruh Spreadsheet
-  // setiap kali halaman dibuka. Tanpa parameter month, perilaku lama tetap membaca semua data.
-  let force = !!forceRefresh;
-  if (forceRefresh && typeof forceRefresh === 'string' && !month) {
-    force = false;
-    month = forceRefresh;
-  }
-  month = String(month || '').trim();
-
-  const cacheMonth = month ? month.replace(/\s+/g,'_') : 'ALL';
+function getBookings(forceRefresh) {
   const cache = CacheService.getScriptCache();
-  const key = _bookingCacheKey_(cacheMonth);
+  const key = _bookingCacheKey_('ALL');
+  const force = !!forceRefresh;
   if (!force) {
     const cached = cache.get(key);
     if (cached) {
       try { return JSON.parse(cached); } catch (e) {}
     }
   }
-
+  const sheets = getAllBookingSheets_();
   const byId = new Map();
-
-  if (month) {
-    // Cari tab bulan secara langsung — jauh lebih cepat daripada scan semua tab.
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const sh = ss.getSheetByName(month);
-    if (sh && sh.getLastRow() >= 2) {
-      const last = sh.getLastRow();
+  sheets.forEach(sh => {
+    const last = sh.getLastRow();
+    if (last >= 2) {
       const rows = sh.getRange(2,1,last-1,17).getValues();
       rows.filter(r => r[0]).forEach(r => {
         const obj = rowToObject_(r);
         if (obj.id) byId.set(obj.id, obj);
       });
     }
-
-    // Data lama di tab Bookings tetap ikut tampil jika tanggalnya berada
-    // pada bulan yang sedang diminta.
-    const legacy = ss.getSheetByName(SHEET_NAME);
-    if (legacy && legacy.getName() !== month && legacy.getLastRow() >= 2) {
-      const rows = legacy.getRange(2,1,legacy.getLastRow()-1,17).getValues();
-      rows.filter(r => r[0] && getMonthSheetName_(r[12]) === month).forEach(r => {
-        const obj = rowToObject_(r);
-        if (obj.id) byId.set(obj.id, obj);
-      });
-    }
-  } else {
-    const sheets = getAllBookingSheets_();
-    sheets.forEach(sh => {
-      const last = sh.getLastRow();
-      if (last >= 2) {
-        const rows = sh.getRange(2,1,last-1,17).getValues();
-        rows.filter(r => r[0]).forEach(r => {
-          const obj = rowToObject_(r);
-          if (obj.id) byId.set(obj.id, obj);
-        });
-      }
-    });
-  }
-
+  });
   const result = Array.from(byId.values()).sort((a,b) =>
     String(b.date+' '+b.time).localeCompare(String(a.date+' '+a.time))
   );
-  try { cache.put(key, JSON.stringify(result), 3); } catch (e) {}
+  try { cache.put(key, JSON.stringify(result), 1); } catch (e) {}
   return result;
 }
 
-function getDashboardData(forceRefresh, month) {
+function getDashboardData(forceRefresh) {
   const cache = CacheService.getScriptCache();
-  const requestedMonth = String(month || '').trim();
-  const cacheKey = 'DASHBOARD_FAST_' + (requestedMonth || 'ALL').replace(/\s+/g,'_');
+  const key = 'DASHBOARD_DATA_V2';
   const force = !!forceRefresh;
-
   if (!force) {
-    const cached = cache.get(cacheKey);
+    const cached = cache.get(key);
     if (cached) {
       try { return JSON.parse(cached); } catch (e) {}
     }
   }
-
-  // Satu endpoint mengembalikan semua yang dibutuhkan dashboard.
-  // Booking dibatasi ke bulan aktif sehingga pembukaan dashboard jauh lebih cepat.
   const result = {
-    bookings: getBookings(force, requestedMonth),
+    bookings: getBookings(force),
     settings: getSettings(),
     bookingMonths: getBookingMonths()
   };
-
-  try { cache.put(cacheKey, JSON.stringify(result), 3); } catch (e) {}
+  try { cache.put(key, JSON.stringify(result), 1); } catch (e) {}
   return result;
 }
 
