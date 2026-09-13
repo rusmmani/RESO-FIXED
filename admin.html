@@ -325,19 +325,22 @@ async function load(silent=false,force=false){
   const refreshButtons=[document.getElementById("refreshDashboard"),document.getElementById("refreshBookings")].filter(Boolean);
   refreshButtons.forEach(b=>{b.classList.add("refreshing");b.innerHTML=b.id==="refreshDashboard"?'<span class="refresh-spin">↻</span> Refreshing':'<span class="refresh-spin">↻</span>';});
   try{
-    const payload={month:selectedMonth||monthNameFromDate_(today)}; if(force)payload.nocache=Date.now();
+    const month=selectedMonth||monthNameFromDate_(today);
+    const payload={month}; if(force)payload.nocache=Date.now();
     const data=await api("getDashboardData",payload);
     const nextBookings=Array.isArray(data?.bookings)?data.bookings:[];
     const nextSettings=data?.settings||{capsters:[],promos:[]};
     const nextMonths=Array.isArray(data?.bookingMonths)?data.bookingMonths:[];
     const signature=JSON.stringify({b:nextBookings,s:nextSettings,m:nextMonths});
     const changed=signature!==lastDataSignature;
-    bookings=nextBookings; settings=nextSettings; bookingMonths=nextMonths;
-    if(!selectedMonth || !bookingMonths.includes(selectedMonth)) selectedMonth=bookingMonths.includes(monthNameFromDate_(today))?monthNameFromDate_(today):(bookingMonths[0]||monthNameFromDate_(today));
-    if(!selectedDate && selectedMonth===monthNameFromDate_(today)) selectedDate=k(today);
-    if(!selectedDate && selectedMonth===monthNameFromDate_(today)) selectedDate=k(today);
+    bookings=nextBookings; monthDataCache.set(month,nextBookings); settings=nextSettings; bookingMonths=nextMonths;
+    if(!selectedMonth || !bookingMonths.includes(selectedMonth)) selectedMonth=bookingMonths.includes(monthNameFromDate_(today))?monthNameFromDate_(today):(bookingMonths[0]||month);
+    if(selectedDate && monthKey_(selectedDate)!==selectedMonthKey_()) selectedDate="";
     renderDatePicker_();
-    if(changed){ renderSettings(); render(); if(document.getElementById("capsterModal")?.classList.contains("show")) renderCapsterPopup(); }
+    if(changed){
+      renderSettings(); render();
+      if(document.getElementById("capsterModal")?.classList.contains("show"))renderCapsterPopup();
+    }else{ render(); }
     lastDataSignature=signature; lastRefreshAt=Date.now();
     try{localStorage.setItem(DASHBOARD_CACHE_KEY,JSON.stringify({bookings,settings,bookingMonths,selectedMonth,selectedDate,at:lastRefreshAt}));}catch(e){}
     const live=document.getElementById("liveStatus");
@@ -348,13 +351,28 @@ async function load(silent=false,force=false){
     if(!silent)toast(e.message||"Gagal memuat data");
   }finally{
     refreshButtons.forEach(b=>{b.classList.remove("refreshing");b.innerHTML=b.id==="refreshDashboard"?'↻ Refresh':'↻';});
-    hideDashboardLoader();
-    isRefreshing=false;
+    hideDashboardLoader(); isRefreshing=false;
   }
 }
+
+// Ambil satu bulan saja ketika kalender reschedule berpindah bulan.
+const monthDataCache=new Map();
+async function ensureMonthLoaded_(month,force=false){
+  if(!month)return;
+  if(!force && month===selectedMonth)return;
+  if(!force && monthDataCache.has(month))return monthDataCache.get(month);
+  const promise=api("getDashboardData",{month,nocache:force?Date.now():undefined}).then(data=>{
+    const rows=Array.isArray(data?.bookings)?data.bookings:[];
+    monthDataCache.set(month,rows);
+    return rows;
+  }).catch(err=>{monthDataCache.delete(month);throw err;});
+  monthDataCache.set(month,promise);
+  return promise;
+}
+
 // Cache hanya dipakai sebagai tampilan sementara; data live tetap diminta otomatis.
 restoreDashboardCache_();
-setInterval(()=>{if(document.visibilityState==="visible" && isLoggedIn())load(true,false)},5000);
+setInterval(()=>{if(document.visibilityState==="visible" && isLoggedIn())load(true,false)},15000);
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible" && isLoggedIn())load(true,false)});
 
 function monthNameFromDate_(d){return mn[d.getMonth()]+" "+d.getFullYear()}
@@ -366,35 +384,37 @@ function renderDatePicker_(){
   const mk=selectedMonthKey_(); if(!mk)return;
   const [yy,mm]=mk.split("-").map(Number);
   const days=new Date(yy,mm,0).getDate();
-
   if(selectedDate && monthKey_(selectedDate)!==mk) selectedDate="";
+
+  const months=(bookingMonths.length?bookingMonths:[selectedMonth]).map(x=>`<option value="${esc(x)}" ${x===selectedMonth?'selected':''}>${esc(x)}</option>`).join("");
   let buttons=`<button type="button" class="date-btn ${!selectedDate?'selected':''}" data-date="">ALL<small>bulan</small></button>`;
+  const counts=Object.create(null);
+  for(const b of bookings){
+    if(monthKey_(b.date)!==mk || String(b.status||"")==="Cancelled")continue;
+    counts[b.date]=(counts[b.date]||0)+1;
+  }
   for(let d=1;d<=days;d++){
     const ds=`${yy}-${String(mm).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
     const dateObj=new Date(ds+"T00:00:00");
-    const count=bookings.filter(b=>b.date===ds && String(b.status||"")!=="Cancelled").length;
-    buttons+=`<button type="button" class="date-btn ${selectedDate===ds?'selected ':''}${count?'has-booking':''}" data-date="${ds}" title="${count} booking">
-      ${d}<small>${dn[dateObj.getDay()]}${count?` · ${count}`:""}</small>
-    </button>`;
+    const count=counts[ds]||0;
+    buttons+=`<button type="button" class="date-btn ${selectedDate===ds?'selected ':''}${count?'has-booking':''}" data-date="${ds}" title="${count} booking">${d}<small>${dn[dateObj.getDay()]}${count?` · ${count}`:""}</small></button>`;
   }
-  box.innerHTML=`<span class="date-picker-label">Tampilkan tgl</span>
-    <select id="monthFilter" class="date-month-select" aria-label="Pilih bulan">${(bookingMonths.length?bookingMonths:[selectedMonth]).map(x=>`<option value="${esc(x)}" ${x===selectedMonth?"selected":""}>${esc(x)}</option>`).join("")}</select>
-    <div class="date-buttons">${buttons}</div>`;
-  const monthFilter=document.getElementById("monthFilter");
-  monthFilter?.addEventListener("change",async()=>{
-    todayOnly=false; selectedDate=""; selectedMonth=monthFilter.value;
-    search.value=""; status.value="all"; barber.value="all";
+  box.innerHTML=`<span class="date-picker-label">Tampilkan tgl</span><select class="date-month-select" id="dateMonthSelect" aria-label="Pilih bulan">${months}</select><div class="date-buttons">${buttons}</div>`;
+  const monthSelect=document.getElementById("dateMonthSelect");
+  monthSelect.onchange=async()=>{
+    const target=monthSelect.value;
+    if(!target || target===selectedMonth)return;
+    todayOnly=false; selectedDate=""; selectedMonth=target; search.value=""; status.value="all"; barber.value="all";
     renderDatePicker_(); render();
     await load(false,true);
-  });
-  box.querySelectorAll(".date-btn").forEach(btn=>btn.addEventListener("click",()=>{
-    selectedDate=btn.dataset.date||"";
-    todayOnly=false;
-    renderDatePicker_();
-    render();
+  };
+  box.querySelector(".date-buttons")?.addEventListener("click",e=>{
+    const btn=e.target.closest(".date-btn"); if(!btn)return;
+    selectedDate=btn.dataset.date||""; todayOnly=false;
+    renderDatePicker_(); render();
     list.classList.remove("filter-refresh"); void list.offsetWidth; list.classList.add("filter-refresh");
-    setTimeout(()=>document.querySelector(".date-btn.selected")?.scrollIntoView({behavior:"smooth",block:"nearest",inline:"center"}),0);
-  }));
+    requestAnimationFrame(()=>document.querySelector(".date-btn.selected")?.scrollIntoView({behavior:"smooth",block:"nearest",inline:"center"}));
+  });
 }
 function renderSettings(){
   const active=settings.capsters.filter(x=>x.active);
@@ -673,36 +693,26 @@ async function times(){
   const box=document.getElementById("timeGrid");
   box.innerHTML='<div class="slot-empty" style="padding:20px;text-align:center">MEMUAT JAM...</div>';
   try{
-    const all=await api("getBookings");
-    const dayBookings=(all||[]).filter(b=>b.date===selDate&&b.barber===current.barber&&b.status!=="Cancelled");
-    const byTime={};
-    dayBookings.forEach(b=>{byTime[b.time]=b});
-    let html="";
-    for(let h=10;h<22;h++){
-      for(const m of [0,30]){
-        const t=String(h).padStart(2,"0")+":"+String(m).padStart(2,"0");
-        const b=byTime[t];
-        const isCurrent=b&&b.id===current.id;
-        html+=`<div class="schedule-row">
-          <div class="schedule-time">${t}</div>
-          <div class="schedule-slot ${b?"booked-slot":"empty-slot"}" data-time="${t}">
-            ${b
-              ? `<button class="booking-block ${isCurrent?"current":""}" draggable="${isCurrent}" data-time="${t}" ${isCurrent?`onclick="pickTime('${t}')"`:""}><strong>${esc(b.name)}</strong><small>${esc(b.service)} · ${esc(b.barber)}</small><span>${isCurrent&&selTime===t?"✓":"●"}</span></button>`
-              : `<div class="slot-empty">KOSONG</div>`}
-          </div>
-        </div>`;
-      }
+    const targetMonth=monthNameFromDate_(new Date(selDate+"T00:00:00"));
+    let source;
+    if(targetMonth===selectedMonth){
+      source=bookings;
+    }else{
+      source=await ensureMonthLoaded_(targetMonth,false);
     }
-    box.innerHTML=html;
-    bindDragDrop();
-    sum();
+    const dayBookings=(source||[]).filter(b=>b.date===selDate&&b.barber===current.barber&&!['Cancelled','Completed'].includes(b.status));
+    const byTime=Object.create(null); dayBookings.forEach(b=>{byTime[b.time]=b;});
+    let html="";
+    for(let h=10;h<22;h++)for(const m of [0,30]){
+      const t=String(h).padStart(2,"0")+":"+String(m).padStart(2,"0");
+      const b=byTime[t],isCurrent=b&&b.id===current.id;
+      html+=`<div class="schedule-row"><div class="schedule-time">${t}</div><div class="schedule-slot ${b?"booked-slot":"empty-slot"}" data-time="${t}">${b?`<button class="booking-block ${isCurrent?"current":""}" draggable="${isCurrent}" data-time="${t}" ${isCurrent?`onclick="pickTime('${t}')"`:""}><strong>${esc(b.name)}</strong><small>${esc(b.service)} · ${esc(b.barber)}</small><span>${isCurrent&&selTime===t?"✓":"●"}</span></button>`:`<div class="slot-empty">KOSONG</div>`}</div></div>`;
+    }
+    box.innerHTML=html; bindDragDrop(); sum();
   }catch(e){
-    console.error(e);
-    box.innerHTML='<div class="slot-empty" style="padding:20px;text-align:center">GAGAL MEMUAT JAM</div>';
-    toast(e.message||"Gagal memuat jadwal");
+    console.error(e); box.innerHTML='<div class="slot-empty" style="padding:20px;text-align:center">GAGAL MEMUAT JAM</div>'; toast(e.message||"Gagal memuat jadwal");
   }
 }
-
 function bindDragDrop(){
   const block=document.querySelector(".booking-block.current");
   const slots=document.querySelectorAll(".schedule-slot");
@@ -841,7 +851,8 @@ function remindCustomer(id){
 document.getElementById("refreshDashboard")?.addEventListener("click",()=>load(false,true));
 document.getElementById("refreshBookings")?.addEventListener("click",()=>load(false,true));
 search.oninput=render;status.onchange=render;barber.onchange=render;
-monthFilter.onchange=async()=>{todayOnly=false;selectedDate="";selectedMonth=monthFilter.value;search.value="";status.value="all";barber.value="all";render();renderDatePicker_();await load(false,true)};
+// Pemilihan bulan dilakukan dari date picker. Tidak ada lagi referensi monthFilter yang tidak tersedia.
+
 document.getElementById("quickReschedule").onclick=()=>{let b=bookings.find(x=>monthKey_(x.date)===selectedMonthKey_()&&!['Cancelled','Completed'].includes(x.status));if(b)openRes(b.id)};
 document.getElementById("quickToday").onclick=()=>{
   todayOnly=true; selectedDate=""; renderDatePicker_();
