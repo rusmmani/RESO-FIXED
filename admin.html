@@ -64,6 +64,9 @@ button,input,select{transition:transform .18s ease,background .18s ease,border-c
 
 .login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}.login-card{width:min(420px,100%);border:1px solid var(--border);background:var(--bg);padding:34px;box-shadow:0 20px 60px rgba(0,0,0,.08)}.login-logo img{width:100%;height:100%;object-fit:cover}.login-logo{width:52px;height:52px;background:var(--dark);color:#fff;display:grid;place-items:center;font-weight:800;font-size:20px;margin-bottom:22px}.login-card h1{font-size:34px;letter-spacing:-.06em;line-height:.95}.login-card p{font-size:11px;line-height:1.7;color:var(--muted);margin:10px 0 24px}.pin-wrap{position:relative}.pin-input{width:100%;border:1px solid var(--border);background:transparent;padding:14px 45px 14px 14px;outline:none;font:16px var(--mono);letter-spacing:.18em}.pin-input:focus{border-color:var(--dark)}.pin-toggle{position:absolute;right:8px;top:7px;width:36px;height:36px;border:0;background:transparent}.login-btn{width:100%;margin-top:12px}.login-error{min-height:18px;color:var(--red);font:8px var(--mono);margin-top:10px;text-transform:uppercase}.login-screen.hidden{display:none}
 
+.booking-date-filter-panel{border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:rgba(255,255,255,.16)}
+.booking-filter-title{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:14px 22px 8px}.booking-filter-title strong{display:block;font-size:11px}.booking-filter-title small{display:block;font:8px var(--mono);color:var(--muted);margin-top:4px}.booking-filter-title label{display:flex;align-items:center;gap:8px;font:8px var(--mono);color:var(--muted);white-space:nowrap}#monthFilter{min-width:145px;border:1px solid var(--border);background:var(--surface);padding:9px 10px;font-size:10px;outline:none}
+@media(max-width:620px){.booking-filter-title{align-items:flex-start;flex-direction:column}.booking-filter-title label{width:100%}#monthFilter{width:100%}}
 .settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:25px;margin-top:25px}.setting-list{padding:6px 0}.setting-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 22px;border-bottom:1px solid var(--border)}.setting-main{min-width:0}.setting-main strong{display:block;font-size:12px}.setting-main small{display:block;font:8px var(--mono);color:var(--muted);margin-top:4px}.switch{position:relative;width:42px;height:24px;flex:0 0 42px}.switch input{opacity:0;width:0;height:0}.switch i{position:absolute;inset:0;border:1px solid var(--border);background:var(--surface);border-radius:20px;transition:.2s}.switch i:after{content:"";position:absolute;width:18px;height:18px;left:2px;top:2px;background:#fff;border:1px solid var(--border);border-radius:50%;transition:.2s}.switch input:checked+i{background:var(--dark)}.switch input:checked+i:after{transform:translateX(18px)}.setting-form{padding:18px 22px;display:grid;gap:10px}.setting-form input,.setting-form select{width:100%;border:1px solid var(--border);background:transparent;padding:11px;font-size:10px;outline:none}.setting-form .form-grid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px}.promo-meta{font:8px var(--mono);color:var(--muted);margin-top:4px}.badge-on,.badge-off{font:8px var(--mono);padding:4px 6px;border:1px solid var(--border)}.badge-on{background:var(--dark);color:#fff}.badge-off{opacity:.55}.promo-code{font-family:var(--mono);letter-spacing:.08em}.setting-empty{padding:22px;color:var(--muted);font:9px var(--mono)}
 @media(max-width:800px){.settings-grid{grid-template-columns:1fr}.setting-form .form-grid{grid-template-columns:1fr}}
 
@@ -115,7 +118,7 @@ button,input,select{transition:transform .18s ease,background .18s ease,border-c
     <div class="stat"><strong id="statToday">0</strong><span>Booking hari ini</span></div>
     <div class="stat"><strong id="statUpcoming">0</strong><span>Akan datang</span></div>
     <div class="stat"><strong id="statMonthlyEstimate">Rp0</strong><span>Estimasi omzet / bulan</span></div>
-    <div class="stat"><strong id="statDailyEstimate">Rp0</strong><span>Estimasi omzet / hari</span></div>
+    <div class="stat"><strong id="statDailyEstimate">Rp0</strong><span>Total omzet / hari ini</span></div>
     <div class="stat"><strong id="statCompletedRevenue">Rp0</strong><span>Omzet completed</span></div>
     <div class="stat"><strong id="statRescheduled">0</strong><span>Reschedule</span></div>
   </section>
@@ -128,7 +131,10 @@ button,input,select{transition:transform .18s ease,background .18s ease,border-c
         <select id="statusFilter"><option value="all">Semua status</option><option value="confirmed">Confirmed</option><option value="rescheduled">Rescheduled</option><option value="cancelled">Cancelled</option><option value="completed">Completed</option></select>
         <select id="barberFilter"><option value="all">Semua capster</option></select><button class="btn" id="sortNearestBtn" type="button" title="Urutkan booking dari tanggal dan jam terdekat">↕ Jam terdekat</button>
       </div>
-      <div class="date-picker" id="datePicker" aria-label="Filter tanggal booking"></div>
+      <div class="booking-date-filter-panel" id="bookingDateFilterPanel">
+        <div class="booking-filter-title"><div><strong>Filter Booking</strong><small>Pilih bulan dari sheet Spreadsheet, lalu pilih 1 tanggal.</small></div><label>BULAN <select id="monthFilter" aria-label="Pilih bulan booking"></select></label></div>
+        <div class="date-picker" id="datePicker" aria-label="Filter tanggal booking"></div>
+      </div>
       <div class="booking-list" id="bookingList"></div>
     </section>
 
@@ -367,6 +373,7 @@ function renderDatePicker_(){
     todayOnly=false;
     renderDatePicker_();
     render();
+    try{localStorage.setItem(DASHBOARD_CACHE_KEY,JSON.stringify({bookings,settings,bookingMonths,selectedMonth,selectedDate,at:lastRefreshAt}));}catch(e){}
     const active=box.querySelector(".date-chip.active"); if(active)active.scrollIntoView({behavior:"smooth",block:"nearest",inline:"center"});
   }));
 }
@@ -573,7 +580,7 @@ function render(){
       <button class="iconbtn cancel-btn" title="Hapus pesanan" onclick="cancel('${b.id}')">×</button>
     </div>
   </article>`).join("") :
-    `<div class="empty">${todayOnly?"Tidak ada booking hari ini.":"Tidak ada booking untuk "+esc(selectedMonth)+"."}</div>`;
+    `<div class="empty">${todayOnly?"Tidak ada booking hari ini.":selectedDate?"Tidak ada booking pada "+esc(dt(selectedDate))+".":"Tidak ada booking untuk "+esc(selectedMonth)+"."}</div>`;
 
   const active=monthBookings.filter(b=>String(b.status||"")!=="Cancelled");
   const completed=monthBookings.filter(b=>String(b.status||"")==="Completed");
@@ -815,7 +822,7 @@ function remindCustomer(id){
 document.getElementById("refreshDashboard")?.addEventListener("click",()=>load(false,true));
 document.getElementById("refreshBookings")?.addEventListener("click",()=>load(false,true));
 search.oninput=render;status.onchange=render;barber.onchange=render;
-monthFilter.onchange=()=>{todayOnly=false;selectedDate="";selectedMonth=monthFilter.value;search.value="";status.value="all";barber.value="all";renderDatePicker_();render()};
+monthFilter.onchange=()=>{todayOnly=false;selectedDate="";selectedMonth=monthFilter.value;search.value="";status.value="all";barber.value="all";renderDatePicker_();render();try{localStorage.setItem(DASHBOARD_CACHE_KEY,JSON.stringify({bookings,settings,bookingMonths,selectedMonth,selectedDate,at:lastRefreshAt}));}catch(e){}};
 document.getElementById("quickReschedule").onclick=()=>{let b=bookings.find(x=>monthKey_(x.date)===selectedMonthKey_()&&!['Cancelled','Completed'].includes(x.status));if(b)openRes(b.id)};
 document.getElementById("quickToday").onclick=()=>{
   todayOnly=true; selectedDate=""; renderDatePicker_();
