@@ -618,7 +618,7 @@ button,a{touch-action:manipulation}
 <div class="booking-month" id="bookingMonth"></div>
 <div class="date-picker" id="datePicker"></div>
 </div>
-<div class="time-heading"><span>Jam tersedia</span><small>10.00 — 22.00 · interval 30 menit</small></div>
+<div class="time-heading"><span>Jam tersedia</span><small>10.00 — 22.00 · interval 40 menit</small></div>
 <div class="time-grid" id="timeGrid"></div>
 </div>
 <div class="booking-step" data-step="4">
@@ -786,19 +786,22 @@ async function loadTimes(){
     let times=Array.isArray(r)?r:(Array.isArray(r?.times)?r.times:[]);
     if(!times.length) throw new Error("Server tidak mengembalikan daftar jam.");
 
-    // Hari ini: tampilkan mulai jam penuh berikutnya berdasarkan live time.
-    // Contoh sekarang 12:xx -> pilihan pertama 13.00.
+    // Hari ini: tampilkan mulai slot 40-menit berikutnya berdasarkan live time.
+    // Contoh: sekarang 10:25 -> slot pertama 10:40; 11:05 -> 11:20.
     const todayKey=lk(new Date());
     if(state.date===todayKey){
       const nowTime=new Date();
-      const nextHour=nowTime.getHours()<BOOKING_OPEN_HOUR
-        ? BOOKING_OPEN_HOUR
-        : nowTime.getHours()+1;
+      const openMinutes=BOOKING_OPEN_HOUR*60;
+      const closeMinutes=BOOKING_CLOSE_HOUR*60;
+      const currentMinutes=nowTime.getHours()*60+nowTime.getMinutes();
+      const nextSlotMinutes=currentMinutes < openMinutes
+        ? openMinutes
+        : openMinutes + Math.ceil((currentMinutes-openMinutes)/40)*40;
       times=times.filter(x=>{
         const m=String(x.time||"").match(/^(\d{1,2})(?::|\.)(\d{2})$/);
         if(!m) return true;
-        const h=Number(m[1]), min=Number(m[2]);
-        return (h*60+min)>=(nextHour*60);
+        const slotMinutes=Number(m[1])*60+Number(m[2]);
+        return slotMinutes>=nextSlotMinutes && slotMinutes<closeMinutes;
       });
     }
 

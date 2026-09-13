@@ -4,6 +4,7 @@ const TZ = 'Asia/Jakarta';
 const BOOKING_HOUR_START = 10;
 const BOOKING_HOUR_END = 22;
 const SLOT_MINUTES = 30;
+const CLIENT_SLOT_MINUTES = 40;
 const DEFAULT_BARBERS = ['Rezky', 'Iqbal'];
 const CAPSTER_SHEET = 'Capsters';
 const PROMO_SHEET = 'Promos';
@@ -381,7 +382,7 @@ function getClientBookingData(date, barber) {
     });
   }
   const times = [];
-  for (let mins = BOOKING_HOUR_START * 60; mins < BOOKING_HOUR_END * 60; mins += SLOT_MINUTES) {
+  for (let mins = BOOKING_HOUR_START * 60; mins < BOOKING_HOUR_END * 60; mins += CLIENT_SLOT_MINUTES) {
     const h = String(Math.floor(mins / 60)).padStart(2,'0');
     const m = String(mins % 60).padStart(2,'0');
     const time = h + ':' + m;
@@ -694,5 +695,5 @@ function isValidTime_(t) {
   const mins = Number(m[1])*60 + Number(m[2]);
   return mins >= BOOKING_HOUR_START*60 &&
          mins < BOOKING_HOUR_END*60 &&
-         Number(m[2]) % SLOT_MINUTES === 0;
+         (Number(m[2]) % SLOT_MINUTES === 0 || Number(m[2]) % CLIENT_SLOT_MINUTES === 0);
 }

@@ -7,7 +7,9 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
 :root{--bg:#f2f0eb;--surface:#e9e6df;--dark:#151515;--text:#171717;--muted:#77746d;--border:rgba(20,20,20,.14);--white:#fff;--green:#315c43;--red:#7b3d38;--font:"Manrope",sans-serif;--mono:"DM Mono",monospace}
-*{box-sizing:border-box;margin:0;padding:0}body{background:var(--bg);color:var(--text);font-family:var(--font);min-width:320px}button,input,select{font:inherit}button{cursor:pointer}.wrap{width:min(1400px,calc(100% - 40px));margin:auto}
+*{box-sizing:border-box;margin:0;padding:0}body{background:var(--bg);color:var(--text);font-family:var(--font);min-width:320px}.dashboard-loader{position:fixed;inset:0;background:rgba(242,240,235,.94);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:9999;display:flex;align-items:center;justify-content:center;opacity:1;visibility:visible;transition:opacity .28s ease,visibility .28s ease}.dashboard-loader.hidden{opacity:0;visibility:hidden;pointer-events:none}.loader-card{text-align:center;width:min(340px,calc(100% - 40px));padding:30px 25px;border:1px solid var(--border);background:rgba(255,255,255,.6);box-shadow:0 20px 60px rgba(0,0,0,.08)}.loader-ring{width:38px;height:38px;border:2px solid rgba(20,20,20,.15);border-top-color:var(--dark);border-radius:50%;margin:0 auto 16px;animation:spin .75s linear infinite}.loader-card strong{display:block;font-size:14px}.loader-card small{display:block;margin-top:7px;font:8px var(--mono);color:var(--muted)}
+.date-picker{display:flex;align-items:center;gap:8px;padding:12px 22px;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}.date-picker::-webkit-scrollbar{display:none}.date-chip{flex:0 0 62px;height:54px;border:1px solid var(--border);background:rgba(255,255,255,.25);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer}.date-chip small{font:7px var(--mono);text-transform:uppercase;color:var(--muted)}.date-chip strong{font-size:15px;line-height:1}.date-chip:hover{background:#fff;transform:translateY(-1px)}.date-chip.active{background:var(--dark);color:#fff;border-color:var(--dark);box-shadow:0 7px 18px rgba(0,0,0,.12)}.date-chip.active small{color:rgba(255,255,255,.65)}.date-chip.all{flex-basis:74px}.date-picker-label{font:8px var(--mono);color:var(--muted);white-space:nowrap;padding-right:5px}
+button,input,select{transition:transform .18s ease,background .18s ease,border-color .18s ease,box-shadow .18s ease,opacity .18s ease}button:active{transform:scale(.97)!important}.btn,.iconbtn{transition:all .2s cubic-bezier(.2,.8,.2,1)}.btn:hover,.iconbtn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.07)}.btn:disabled,.iconbtn:disabled{opacity:.55;cursor:wait;transform:none;box-shadow:none}button,input,select{font:inherit}button{cursor:pointer}.wrap{width:min(1400px,calc(100% - 40px));margin:auto}
 .topbar{height:78px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:20px}
 .brand{display:flex;align-items:center;gap:12px}.logo{width:42px;height:42px;background:var(--dark);color:#fff;display:grid;place-items:center;font-weight:800;overflow:hidden}.logo img{width:100%;height:100%;object-fit:cover}.refreshing{opacity:.65;pointer-events:none}.refreshing .refresh-spin{display:inline-block;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.brand strong{display:block;font-size:15px}.brand small{font:8px var(--mono);color:var(--muted)}
 .top-actions{display:flex;gap:8px;align-items:center}.btn{border:1px solid var(--border);background:transparent;padding:11px 15px;font-size:10px;font-weight:700}.btn.dark{background:var(--dark);color:#fff;border-color:var(--dark)}.btn:hover{transform:translateY(-1px)}
@@ -96,7 +98,7 @@
     </form>
   </div>
 </div>
-<header class="topbar">
+<div class="dashboard-loader hidden" id="dashboardLoader" aria-live="polite"><div class="loader-card"><div class="loader-ring"></div><strong>Memuat Dashboard</strong><small id="loaderText">Mengambil data terbaru dari Spreadsheet…</small></div></div><header class="topbar">
   <div class="wrap" style="display:flex;align-items:center;justify-content:space-between;width:100%">
     <div class="brand"><div class="logo"><img src="data:image/jpeg;base64,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" alt="RESO logo" decoding="sync"></div><div><strong>RESO Haircut</strong><small>ADMIN DASHBOARD · INDRAMAYU</small></div></div>
     <div class="top-actions"><button class="btn" id="refreshDashboard" type="button" title="Refresh data booking">↻ Refresh</button><button class="btn top-capster-btn" id="topCapster" type="button">✂ Capster</button><button class="btn dark" id="newBooking">+ Booking Baru</button></div>
@@ -126,6 +128,7 @@
         <select id="statusFilter"><option value="all">Semua status</option><option value="confirmed">Confirmed</option><option value="rescheduled">Rescheduled</option><option value="cancelled">Cancelled</option><option value="completed">Completed</option></select>
         <select id="barberFilter"><option value="all">Semua capster</option></select><button class="btn" id="sortNearestBtn" type="button" title="Urutkan booking dari tanggal dan jam terdekat">↕ Jam terdekat</button>
       </div>
+      <div class="date-picker" id="datePicker" aria-label="Filter tanggal booking"></div>
       <div class="booking-list" id="bookingList"></div>
     </section>
 
@@ -259,12 +262,14 @@
 <script>
 const API_URL="/api/reso";const ADMIN_PIN="reso2626";
 const AUTH_KEY="reso_admin_authenticated";
-const loginScreen=document.getElementById("loginScreen"),loginForm=document.getElementById("loginForm"),pinInput=document.getElementById("pinInput"),loginError=document.getElementById("loginError"),pinToggle=document.getElementById("pinToggle");
+const loginScreen=document.getElementById("loginScreen"),loginForm=document.getElementById("loginForm"),pinInput=document.getElementById("pinInput"),loginError=document.getElementById("loginError"),pinToggle=document.getElementById("pinToggle"),dashboardLoader=document.getElementById("dashboardLoader"),loaderText=document.getElementById("loaderText");
 function isLoggedIn(){return sessionStorage.getItem(AUTH_KEY)==="1"}
 function showDashboard(){loginScreen.classList.add("hidden");document.body.style.overflow=""}
 function showLogin(){loginScreen.classList.remove("hidden");document.body.style.overflow="hidden";setTimeout(()=>pinInput.focus(),50)}
+function showDashboardLoader(text="Mengambil data terbaru dari Spreadsheet…"){if(loaderText)loaderText.textContent=text;dashboardLoader?.classList.remove("hidden")}
+function hideDashboardLoader(){dashboardLoader?.classList.add("hidden")}
 if(isLoggedIn())showDashboard();else showLogin();
-loginForm.addEventListener("submit",e=>{e.preventDefault();if(pinInput.value===ADMIN_PIN){sessionStorage.setItem(AUTH_KEY,"1");loginError.textContent="";pinInput.value="";showDashboard();restoreDashboardCache_();requestAnimationFrame(()=>load(true,true));}else{loginError.textContent="PIN salah. Silakan coba lagi.";pinInput.value="";pinInput.focus()}});
+loginForm.addEventListener("submit",e=>{e.preventDefault();if(pinInput.value===ADMIN_PIN){sessionStorage.setItem(AUTH_KEY,"1");loginError.textContent="";pinInput.value="";showDashboard();showDashboardLoader();restoreDashboardCache_();requestAnimationFrame(()=>load(true,true));}else{loginError.textContent="PIN salah. Silakan coba lagi.";pinInput.value="";pinInput.focus()}});
 pinToggle.addEventListener("click",()=>{const visible=pinInput.type==="text";pinInput.type=visible?"password":"text";pinToggle.textContent=visible?"◉":"◌"});
 
 async function api(action,payload={}){
@@ -286,7 +291,7 @@ async function api(action,payload={}){
 }
 let settings={capsters:[],promos:[]};
 const G=null, monthFilter=document.getElementById("monthFilter"), list=document.getElementById("bookingList"),search=document.getElementById("search"),status=document.getElementById("statusFilter"),barber=document.getElementById("barberFilter"),mn=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"],dn=["Min","Sen","Sel","Rab","Kam","Jum","Sab"],today=new Date();
-today.setHours(0,0,0,0);let bookings=[],bookingMonths=[],selectedMonth="",current=null,selDate=null,selTime=null,view=new Date(today.getFullYear(),today.getMonth(),1),sortNearest=false,todayOnly=false;
+today.setHours(0,0,0,0);let bookings=[],bookingMonths=[],selectedMonth="",selectedDate="",current=null,selDate=null,selTime=null,view=new Date(today.getFullYear(),today.getMonth(),1),sortNearest=false,todayOnly=false;
 const k=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`,dt=s=>{let d=new Date(s+"T00:00:00");return`${dn[d.getDay()]}, ${d.getDate()} ${mn[d.getMonth()]} ${d.getFullYear()}`},esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 let isRefreshing=false,lastDataSignature="",lastRefreshAt=0;
 const DASHBOARD_CACHE_KEY="reso_dashboard_cache_v2";
@@ -295,7 +300,7 @@ function restoreDashboardCache_(){
     const c=JSON.parse(localStorage.getItem(DASHBOARD_CACHE_KEY)||"null");
     if(!c||!Array.isArray(c.bookings))return false;
     bookings=c.bookings||[]; settings=c.settings||{capsters:[],promos:[]}; bookingMonths=c.bookingMonths||[];
-    selectedMonth=c.selectedMonth||bookingMonths[0]||monthNameFromDate_(today);
+    selectedMonth=c.selectedMonth||bookingMonths[0]||monthNameFromDate_(today); selectedDate=c.selectedDate||"";
     monthFilter.innerHTML=(bookingMonths.length?bookingMonths:[selectedMonth]).map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
     monthFilter.value=selectedMonth; renderSettings(); render();
     const live=document.getElementById("liveStatus"); if(live){live.textContent="● CACHED · memperbarui…";live.className="live-status";}
@@ -319,9 +324,10 @@ async function load(silent=false,force=false){
     if(!selectedMonth || !bookingMonths.includes(selectedMonth)) selectedMonth=bookingMonths[0]||monthNameFromDate_(today);
     monthFilter.innerHTML=(bookingMonths.length?bookingMonths:[selectedMonth]).map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
     monthFilter.value=selectedMonth;
+    renderDatePicker_();
     if(changed){ renderSettings(); render(); if(document.getElementById("capsterModal")?.classList.contains("show")) renderCapsterPopup(); }
     lastDataSignature=signature; lastRefreshAt=Date.now();
-    try{localStorage.setItem(DASHBOARD_CACHE_KEY,JSON.stringify({bookings,settings,bookingMonths,selectedMonth,at:lastRefreshAt}));}catch(e){}
+    try{localStorage.setItem(DASHBOARD_CACHE_KEY,JSON.stringify({bookings,settings,bookingMonths,selectedMonth,selectedDate,at:lastRefreshAt}));}catch(e){}
     const live=document.getElementById("liveStatus");
     if(live){live.textContent="● LIVE · "+new Date().toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",second:"2-digit"});live.className="live-status live";}
   }catch(e){
@@ -330,6 +336,7 @@ async function load(silent=false,force=false){
     if(!silent)toast(e.message||"Gagal memuat data");
   }finally{
     refreshButtons.forEach(b=>{b.classList.remove("refreshing");b.innerHTML=b.id==="refreshDashboard"?'↻ Refresh':'↻';});
+    hideDashboardLoader();
     isRefreshing=false;
   }
 }
@@ -342,6 +349,27 @@ function monthNameFromDate_(d){return mn[d.getMonth()]+" "+d.getFullYear()}
 function selectedMonthKey_(){const parts=String(selectedMonth||"").split(" ");if(parts.length!==2)return "";const idx=mn.indexOf(parts[0]);return idx<0?"":String(parts[1])+"-"+String(idx+1).padStart(2,"0")}
 function monthKey_(date){return String(date||"").slice(0,7)}
 
+function renderDatePicker_(){
+  const box=document.getElementById("datePicker"); if(!box)return;
+  const mk=selectedMonthKey_(); if(!mk)return;
+  const [yy,mm]=mk.split("-").map(Number);
+  const days=new Date(yy,mm,0).getDate();
+  if(selectedDate && monthKey_(selectedDate)!==mk) selectedDate="";
+  let html=`<button type="button" class="date-chip all ${!selectedDate?'active':''}" data-date=""><small>VIEW</small><strong>Semua</strong></button>`;
+  for(let d=1;d<=days;d++){
+    const ds=`${yy}-${String(mm).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const dateObj=new Date(ds+"T00:00:00");
+    html+=`<button type="button" class="date-chip ${selectedDate===ds?'active':''}" data-date="${ds}"><small>${dn[dateObj.getDay()]}</small><strong>${d}</strong></button>`;
+  }
+  box.innerHTML=`<span class="date-picker-label">TANGGAL</span>${html}`;
+  box.querySelectorAll(".date-chip").forEach(btn=>btn.addEventListener("click",()=>{
+    selectedDate=btn.dataset.date||"";
+    todayOnly=false;
+    renderDatePicker_();
+    render();
+    const active=box.querySelector(".date-chip.active"); if(active)active.scrollIntoView({behavior:"smooth",block:"nearest",inline:"center"});
+  }));
+}
 function renderSettings(){
   const active=settings.capsters.filter(x=>x.active);
   barber.innerHTML='<option value="all">Semua capster</option>'+settings.capsters.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}${c.active?'':' (OFF)'}</option>`).join("");
@@ -518,7 +546,7 @@ document.getElementById("sortNearestBtn").addEventListener("click",()=>{ sortNea
 function render(){
   const q=search.value.toLowerCase(),sf=status.value,bf=barber.value,mk=selectedMonthKey_();
   const monthBookings=bookings.filter(b=>monthKey_(b.date)===mk);
-  const sourceBookings=todayOnly ? bookings.filter(b=>b.date===k(today)) : monthBookings;
+  const sourceBookings=selectedDate ? bookings.filter(b=>b.date===selectedDate) : (todayOnly ? bookings.filter(b=>b.date===k(today)) : monthBookings);
   let r=sourceBookings.filter(b=>
     (!q||`${b.name} ${b.wa} ${b.service} ${b.id}`.toLowerCase().includes(q)) &&
     (sf==="all"||String(b.status||"").toLowerCase()===sf) &&
@@ -554,7 +582,7 @@ function render(){
   const dailyRevenue=bookings.filter(b=>b.date===k(today)&&String(b.status||"")!=="Cancelled").reduce((sum,b)=>sum+valueOf(b),0);
   const completedRevenue=completed.reduce((sum,b)=>sum+valueOf(b),0);
 
-  document.getElementById("bookingCount").textContent=r.length+" DATA · "+(todayOnly?"HARI INI":selectedMonth.toUpperCase());
+  document.getElementById("bookingCount").textContent=r.length+" DATA · "+(selectedDate?dt(selectedDate).toUpperCase():(todayOnly?"HARI INI":selectedMonth.toUpperCase()));
   document.getElementById("statToday").textContent=bookings.filter(b=>b.date===k(today)&&String(b.status||"")!=="Cancelled").length;
   document.getElementById("statUpcoming").textContent=active.filter(b=>b.date>k(today)&&b.status!=="Completed").length;
   document.getElementById("statMonthlyEstimate").textContent=formatRupiah(monthlyRevenue);
@@ -562,7 +590,7 @@ function render(){
   document.getElementById("statCompletedRevenue").textContent=formatRupiah(completedRevenue);
   document.getElementById("statRescheduled").textContent=monthBookings.filter(b=>b.status==="Rescheduled").length;
   document.getElementById("todayLabel").textContent=dt(k(today));
-  document.querySelector('.panel-head h2').textContent=todayOnly?"Booking — Hari Ini":"Booking — "+selectedMonth;
+  document.querySelector('.panel-head h2').textContent=selectedDate?("Booking — "+dt(selectedDate)):todayOnly?"Booking — Hari Ini":"Booking — "+selectedMonth;
 }
 const editModal=document.getElementById("editModal");
 let editCurrent=null;
@@ -787,16 +815,16 @@ function remindCustomer(id){
 document.getElementById("refreshDashboard")?.addEventListener("click",()=>load(false,true));
 document.getElementById("refreshBookings")?.addEventListener("click",()=>load(false,true));
 search.oninput=render;status.onchange=render;barber.onchange=render;
-monthFilter.onchange=()=>{todayOnly=false;selectedMonth=monthFilter.value;search.value="";status.value="all";barber.value="all";render()};
+monthFilter.onchange=()=>{todayOnly=false;selectedDate="";selectedMonth=monthFilter.value;search.value="";status.value="all";barber.value="all";renderDatePicker_();render()};
 document.getElementById("quickReschedule").onclick=()=>{let b=bookings.find(x=>monthKey_(x.date)===selectedMonthKey_()&&!['Cancelled','Completed'].includes(x.status));if(b)openRes(b.id)};
 document.getElementById("quickToday").onclick=()=>{
-  todayOnly=true;
+  todayOnly=true; selectedDate=""; renderDatePicker_();
   search.value="";status.value="all";barber.value="all";
   render();
 };
-document.getElementById("quickAll").onclick=()=>{todayOnly=false;search.value="";status.value="all";barber.value="all";render()};
+document.getElementById("quickAll").onclick=()=>{todayOnly=false; selectedDate=""; renderDatePicker_();search.value="";status.value="all";barber.value="all";render()};
 document.getElementById("newBooking").onclick=openManualBooking;document.getElementById("resetDemo").style.display="none";
-function toast(x){let t=document.getElementById("toast");t.textContent=x;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2200)}if(isLoggedIn())load(true,false);
+function toast(x){let t=document.getElementById("toast");t.textContent=x;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2200)}if(isLoggedIn()){showDashboardLoader("Mengambil data terbaru dari Spreadsheet…");load(true,false);}
 </script>
 </body>
 </html>
