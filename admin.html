@@ -392,9 +392,9 @@ async function api(action,payload={}){
   if(readActions.has(action)){
     const q=new URLSearchParams({api:action});
     Object.entries(payload||{}).forEach(([k,v])=>{if(v!==undefined&&v!==null)q.set(k,String(v));});
-    res=await fetch(API_URL+"?"+q.toString(),{method:"GET",headers:{"Accept":"application/json, text/plain, */*"},cache:"no-store"});
+    res=await fetch(API_URL+"?"+q.toString(),{method:"GET",headers:{"Accept":"application/json, text/plain, */*","x-admin-pin":ADMIN_PIN},cache:"no-store"});
   }else{
-    res=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8","Accept":"application/json, text/plain, */*"},cache:"no-store",body:JSON.stringify({action,...payload})});
+    res=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8","Accept":"application/json, text/plain, */*","x-admin-pin":ADMIN_PIN},cache:"no-store",body:JSON.stringify({action,...payload})});
   }
   const text=await res.text();let data;
   try{data=JSON.parse(text)}catch(e){throw new Error("Server mengirim response bukan JSON (HTTP "+res.status+")")};
